@@ -56,3 +56,18 @@ describe("category config", () => {
     expect(validateSpecs(celulares, { battery_mah: 50000, nfc: "sim", foo: 1 })).toHaveLength(3);
   });
 });
+
+import { sanitizeEvents } from "./events.ts";
+
+describe("events", () => {
+  it("drops unknown events and unsafe props", () => {
+    const out = sanitizeEvents([
+      { name: "view_product", path: "/celulares/x", props: { price: 10, "bad key": 1, label: "x".repeat(500) } },
+      { name: "drop_table", props: {} },
+      "nope",
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0]!.props).toEqual({ price: 10, label: "x".repeat(200) });
+    expect(sanitizeEvents({})).toEqual([]);
+  });
+});

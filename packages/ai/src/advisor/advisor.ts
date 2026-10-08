@@ -121,7 +121,7 @@ export function selectPicks(products: AdvisorProduct[], profile: UserProfile, co
   add("value", value, ["melhor relação entre nota e preço atual"]);
 
   const avoidR = ranked
-    .filter((r) => r.eliminated && r.reasons.length)
+    .filter((r) => r.eliminated && r.reasons.length && !used.has(r.id))
     .sort((a, b) => (byId.get(b.id)!.scores.overall ?? 0) - (byId.get(a.id)!.scores.overall ?? 0))[0];
   const avoid = avoidR ? { product: byId.get(avoidR.id)!, reasons: avoidR.reasons } : null;
   return { picks, ranked, avoid };

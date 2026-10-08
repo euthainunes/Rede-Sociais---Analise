@@ -56,7 +56,10 @@ const base = { catalog, embedder: new HashingEmbedder(64), store: new InMemoryKn
 
 class FakeLlm implements LlmClient {
   calls: LlmRequest[] = [];
-  constructor(private readonly replies: string[]) {}
+  private readonly replies: string[];
+  constructor(replies: string[]) {
+    this.replies = replies;
+  }
   async complete(req: LlmRequest) {
     this.calls.push(req);
     return { text: this.replies[this.calls.length - 1] ?? "", model: "fake", inputTokens: 0, outputTokens: 0, costUsd: 0, refused: false };
@@ -79,6 +82,8 @@ describe("runAdvisor", () => {
     expect(roles.budget).toBe("c");
     expect(roles.premium).toBe("d");
     expect(r.picks.some((p) => p.product.id === "e")).toBe(false);
+    // "O que eu evitaria" nunca contradiz uma escolha.
+    expect(r.picks.some((p) => p.product.id === r.avoid?.product.id)).toBe(false);
     expect(r.explanation.mode).toBe("template");
     expect(r.explanation.text).toContain("Minha recomendação: Foto Max");
   });

@@ -28,12 +28,14 @@ import type { AdvisorProduct, CatalogPort, Fact, KnowledgeDocument } from "@vere
 import { PROGRAMS } from "@veredito/integrations";
 import type { ContentRow, DataSource, OfferRow, ProductRow } from "./source.ts";
 
+export type OfferView = RankedOffer & { url: string; programKey: string; priceList: number | null; merchantId: string };
+
 export interface VariantView {
   id: string;
   slug: string;
   label: string;
-  offers: (RankedOffer & { url: string; programKey: string; priceList: number | null })[];
-  best: (RankedOffer & { url: string; programKey: string; priceList: number | null }) | null;
+  offers: OfferView[];
+  best: OfferView | null;
   series: DailyPrice[];
   stats: PriceStats;
   verdict: PriceVerdict;
@@ -73,6 +75,7 @@ export interface ProductPage {
 }
 
 const DEFAULT_MAX_PRICE_AGE_H = 24;
+export const BEST_MERCHANT = "melhor";
 
 function maxAgeFor(programKey: string): number {
   return PROGRAMS.find((p) => p.key === programKey)?.terms.maxPriceAgeHours ?? DEFAULT_MAX_PRICE_AGE_H;
@@ -165,7 +168,10 @@ export class CatalogService {
         merchantTrust: o.merchantTrust, lastCheckedAt: o.lastCheckedAt, maxPriceAgeHours: maxAgeFor(o.programKey),
       })),
       now,
-    ).map((o) => ({ ...o, url: extra.get(o.id)!.url, programKey: extra.get(o.id)!.programKey, priceList: extra.get(o.id)!.priceList }));
+    ).map((o) => {
+      const e = extra.get(o.id)!;
+      return { ...o, url: e.url, programKey: e.programKey, priceList: e.priceList, merchantId: e.merchantId };
+    });
     const best = ranked[0] ?? null;
     // O ponto de hoje da série é o menor preço exibível agora.
     const series = best ? [...rawSeries.filter((p) => p.day !== today), { day: today, min: best.total }] : rawSeries;
@@ -268,8 +274,9 @@ export class CatalogService {
       if (!row) continue;
       const vs = b.variants.get(row.id) ?? [];
       const pool = variantSlug ? vs.filter((v) => v.slug === variantSlug) : vs;
+      // "melhor" = melhor oferta entre todas as lojas (usado quando a página não fixa uma loja).
       const candidates = pool
-        .flatMap((v) => v.offers.filter((o) => o.merchantSlug === merchantSlug).map((o) => ({ v, o })))
+        .flatMap((v) => v.offers.filter((o) => merchantSlug === BEST_MERCHANT || o.merchantSlug === merchantSlug).map((o) => ({ v, o })))
         .sort((a, c) => a.o.total - c.o.total);
       const hit = candidates[0];
       return { product: row, summary: b.summaries.find((s) => s.id === row.id)!, hit: hit ?? null };

@@ -2,7 +2,7 @@
  * Fonte de dados de baixo nível. Duas implementações: demonstração (memória) e Postgres.
  * Os serviços (services.ts) montam as páginas a partir daqui, iguais nos dois modos.
  */
-import type { Availability, Condition, DailyPrice, Specs } from "@veredito/core";
+import type { Availability, Condition, DailyPrice, IncomingEvent, Specs } from "@veredito/core";
 import * as demo from "./demo-data.ts";
 import type { Sql } from "./client.ts";
 
@@ -90,6 +90,7 @@ export interface DataSource {
   getSeries(variantIds: string[]): Promise<Map<string, DailyPrice[]>>;
   listContent(filter?: { type?: ContentRow["type"]; productSlug?: string }): Promise<ContentRow[]>;
   recordClick(click: ClickRecord): Promise<void>;
+  recordEvents(events: IncomingEvent[], ctx: { anonId: string | null; ts: Date }): Promise<void>;
 }
 
 // ───────────────────────── Demonstração (memória)
@@ -136,6 +137,7 @@ export function createDemoSource(onClick?: (c: ClickRecord) => void): DataSource
     recordClick: async (c) => {
       onClick?.(c);
     },
+    recordEvents: async () => {},
   };
 }
 
@@ -224,6 +226,15 @@ export function createPgSource(sql: Sql, opts: { today?: () => string } = {}): D
           source_path, page_type, cta_id, position, utm, device, price_shown, is_bot)
         VALUES (${c.clickRef}, ${c.ts}, ${c.sessionId}, ${c.anonId}, ${c.offerId}, ${c.productId}, ${c.variantId}, ${c.merchantId},
           ${c.sourcePath}, ${c.pageType}, ${c.ctaId}, ${c.position}, ${sql.json(c.utm)}, ${c.device}, ${c.priceShown}, ${c.isBot})`;
+    },
+    recordEvents: async (events, ctx) => {
+      if (events.length === 0) return;
+      const uuid = /^[0-9a-f-]{36}$/i;
+      const rows = events.map((e) => ({
+        ts: ctx.ts, name: e.name, anon_id: ctx.anonId, path: e.path,
+        product_id: e.productId && uuid.test(e.productId) ? e.productId : null, props: e.props,
+      }));
+      await sql`INSERT INTO analytics.event ${sql(rows, "ts", "name", "anon_id", "path", "product_id", "props")}`;
     },
   };
 }

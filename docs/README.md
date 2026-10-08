@@ -1,6 +1,6 @@
 # Veredito — Plataforma de Commerce Intelligence e Afiliados
 
-> Codinome provisório. Documentação estratégica e de arquitetura (Etapas 1–19). A implementação (Etapa 20) só começa depois que as decisões abaixo forem aprovadas.
+> Nome fictício provisório. Documentação estratégica e de arquitetura (Etapas 1–19). Decisões tomadas em [decisoes.md](./decisoes.md); a implementação (Etapa 20) começou — ver o README da raiz.
 
 **Tese:** não construir uma máquina de páginas, e sim uma **máquina de decisões de compra**. Responder "qual produto faz sentido para mim, e é hora de comprar?", não só "onde está mais barato?".
 
@@ -39,17 +39,10 @@
 | 17 | [Modelo financeiro](./17-modelo-financeiro.md) |
 | 18 | [Roadmap](./18-roadmap.md) |
 | 19 | [Backlog priorizado](./19-backlog-priorizado.md) |
+| 20 | [RAG — conhecimento, busca híbrida e fundamentação](./20-rag.md) |
+| — | [Decisões D1–D8](./decisoes.md) |
 | A | [Segurança, LGPD e jurídico](./anexo-a-seguranca-lgpd-juridico.md) |
 
-## Decisões pendentes antes da Etapa 20
+## Decisões
 
-| # | Decisão | Recomendação |
-|---|---|---|
-| D1 | Aprovar o foco inicial (só smartphones no lançamento) | Sim |
-| D2 | Stack (Next.js + Postgres + Drizzle + pg-boss) e hospedagem (Vercel + Neon/Supabase) | Sim |
-| D3 | Admin próprio ou CMS headless (ex.: Payload) | Admin próprio: catálogo, matching e preço são específicos do domínio |
-| D4 | Programas de afiliados para integrar primeiro | Uma rede com feed e sub-ID, depois Amazon e Mercado Livre (após validar os termos) |
-| D5 | Política para crawlers de IA (busca/citação × treinamento) | Permitir os de busca/citação; decidir caso a caso os de treinamento |
-| D6 | Nome da marca | Escolher entre as opções da Etapa 2, depois de checar INPI e domínio |
-| D7 | Capacidade de teste próprio (*hands-on*) | Ao menos para os 20 modelos mais buscados |
-| D8 | Portal de marcas e creators na fase 3, condicionados | Sim |
+Todas as decisões D1–D8 foram tomadas; ver [decisoes.md](./decisoes.md).

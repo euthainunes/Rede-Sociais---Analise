@@ -34,8 +34,8 @@ describe.skipIf(!url)("Postgres", () => {
   it("is idempotent (migrate + seed twice)", async () => {
     expect(await migrate(sql)).toEqual([]);
     await seedDemo(sql);
-    const [{ n }] = await sql`SELECT count(*)::int AS n FROM catalog.product WHERE is_demo`;
-    expect(n).toBe(10);
+    const rows = await sql<{ n: number }[]>`SELECT count(*)::int AS n FROM catalog.product WHERE is_demo`;
+    expect(rows[0]!.n).toBe(10);
   });
 
   it("produces the same product page as demo mode", async () => {
@@ -53,7 +53,7 @@ describe.skipIf(!url)("Postgres", () => {
     const ref = `t${Date.now().toString(36)}`;
     await pg.source.recordClick({
       clickRef: ref, ts: new Date(), offerId: r!.hit!.o.id, productId: r!.product.id, variantId: r!.hit!.v.id,
-      merchantId: (await sql`SELECT merchant_id FROM commerce.offer WHERE id = ${r!.hit!.o.id}`)[0]!.merchant_id,
+      merchantId: r!.hit!.o.merchantId,
       programKey: "demo", sourcePath: "/celulares/orbita-s9", pageType: "product", ctaId: "hero_best_offer", position: "hero",
       utm: { utm_source: "test" }, device: "mobile", anonId: null, sessionId: null, priceShown: r!.hit!.o.total, isBot: false,
     });
