@@ -1,0 +1,21 @@
+{
+  "name": "@veredito/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "migrate": "node --experimental-strip-types src/migrate.ts",
+    "seed": "node --experimental-strip-types src/seed.ts",
+    "index-knowledge": "node --experimental-strip-types src/index-knowledge.ts"
+  },
+  "dependencies": {
+    "@veredito/core": "workspace:*",
+    "@veredito/ai": "workspace:*",
+    "@veredito/integrations": "workspace:*",
+    "postgres": "3.4.9"
+  }
+}
