@@ -34,6 +34,24 @@ TEST_DATABASE_URL=$DATABASE_URL pnpm test      # inclui os testes de integraçã
 pnpm dev
 ```
 
+### Painel administrativo (`/admin`)
+
+Exige Postgres. Crie o primeiro usuário (o segredo do 2FA aparece uma única vez; cadastre-o num app autenticador):
+
+```bash
+ADMIN_PASSWORD='uma-senha-com-12+-caracteres' pnpm --filter @veredito/db create-admin voce@empresa.com "Seu Nome" admin
+```
+
+| Área | O que faz | Quem pode |
+|---|---|---|
+| Visão geral | Cliques por dia, página, CTA e loja; produtos mais clicados; contadores; alertas internos | todos |
+| Produtos | Cadastro e edição com ficha técnica validada pela categoria e proveniência (fonte, URL e confiança por atributo); versões com GTIN; redirect 301 automático quando o endereço muda | admin, editor-chefe, editor, analista |
+| Ofertas e matching | Importação de CSV (planilha ou Awin) → associação automática por GTIN/MPN/título → fila humana para os casos duvidosos; atualiza o histórico de preço do dia | admin, editor-chefe, analista |
+| Conteúdo | Reviews, guias e explicadores com revisões; fluxo Rascunho → Revisão → Aprovado → Publicado → Atualização necessária; publicar indexa no RAG | edita: editores; publica: editor-chefe e admin |
+| Auditoria | Registro somente de inclusão de toda escrita | admin, editor-chefe |
+
+Segurança: senha (scrypt) + TOTP obrigatório; bloqueio de 15 minutos após 5 falhas; sessão de 8 h com cookie `HttpOnly`/`SameSite=Strict`, cujo hash fica no banco; permissões checadas em toda página e toda ação no servidor; comercial não edita notas e editor não vê comissão.
+
 Variáveis de ambiente: [`.env.example`](./.env.example). Sem `ANTHROPIC_API_KEY`, o consultor funciona em modo template (a seleção de produtos é determinística; a IA só redige a explicação).
 
 ## Garantias implementadas

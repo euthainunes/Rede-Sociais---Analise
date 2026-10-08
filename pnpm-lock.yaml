@@ -76,6 +76,9 @@ importers:
       '@veredito/ai':
         specifier: workspace:*
         version: link:../ai
+      '@veredito/brand':
+        specifier: workspace:*
+        version: link:../brand
       '@veredito/core':
         specifier: workspace:*
         version: link:../core

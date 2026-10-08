@@ -71,3 +71,18 @@ describe("events", () => {
     expect(sanitizeEvents({})).toEqual([]);
   });
 });
+
+import { coerceSpecs, lines, slugify } from "./index.ts";
+
+describe("text and form helpers", () => {
+  it("slugifies and splits lines", () => {
+    expect(slugify("Nébula Aurora X1 Pro!")).toBe("nebula-aurora-x1-pro");
+    expect(lines("a\n\n b \r\nc")).toEqual(["a", "b", "c"]);
+  });
+  it("coerces form values by attribute type", () => {
+    const s = coerceSpecs(celulares, { screen_inches: "6,7", battery_mah: "5.000", nfc: "on", os: "android", ram_gb: "", chipset: " X " });
+    expect(s).toMatchObject({ screen_inches: 6.7, battery_mah: 5000, nfc: true, os: "android", chipset: "X" });
+    expect("ram_gb" in s).toBe(false);
+    expect(validateSpecs(celulares, coerceSpecs(celulares, { battery_mah: "abc" }))).toHaveLength(1);
+  });
+});

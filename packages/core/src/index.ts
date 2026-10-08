@@ -7,6 +7,7 @@ export * from "./compare.ts";
 export * from "./quality-gate.ts";
 export * from "./tracking.ts";
 export * from "./events.ts";
+export * from "./text.ts";
 export * from "./verticals/types.ts";
 export { celulares } from "./verticals/celulares.ts";
 

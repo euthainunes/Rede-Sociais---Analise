@@ -16,6 +16,7 @@ export function demoUuid(key: string): string {
 export async function seedDemo(sql: Sql): Promise<void> {
   const U = demoUuid;
   await sql.begin(async (tx) => {
+    await tx`SELECT pg_advisory_xact_lock(727274002)`;
     const sourceId = U("source:demo");
     await tx`INSERT INTO ops.data_source (id, kind, name, base_confidence, terms_notes)
              VALUES (${sourceId}, 'manual', 'Dados de demonstração', 0.9, 'Fictício') ON CONFLICT (id) DO NOTHING`;

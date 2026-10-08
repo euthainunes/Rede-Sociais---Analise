@@ -9,20 +9,24 @@ import { createSql, type Sql } from "./client.ts";
 
 const MIGRATIONS_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "migrations");
 
+const LOCK_KEY = 727_274_001;
+
+/** Seguro para execução concorrente (vários pods/testes): cada migração roda sob advisory lock. */
 export async function migrate(sql: Sql, dir = MIGRATIONS_DIR): Promise<string[]> {
-  await sql`CREATE SCHEMA IF NOT EXISTS ops`;
-  await sql`CREATE TABLE IF NOT EXISTS ops.schema_migration (name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())`;
-  const done = new Set((await sql<{ name: string }[]>`SELECT name FROM ops.schema_migration`).map((r) => r.name));
   const files = (await readdir(dir)).filter((f) => f.endsWith(".sql")).sort();
   const applied: string[] = [];
   for (const f of files) {
-    if (done.has(f)) continue;
     const body = await readFile(join(dir, f), "utf8");
     await sql.begin(async (tx) => {
+      await tx`SELECT pg_advisory_xact_lock(${LOCK_KEY})`;
+      await tx`CREATE SCHEMA IF NOT EXISTS ops`;
+      await tx`CREATE TABLE IF NOT EXISTS ops.schema_migration (name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())`;
+      const [done] = await tx`SELECT 1 FROM ops.schema_migration WHERE name = ${f}`;
+      if (done) return;
       await tx.unsafe(body);
       await tx`INSERT INTO ops.schema_migration (name) VALUES (${f})`;
+      applied.push(f);
     });
-    applied.push(f);
   }
   return applied;
 }

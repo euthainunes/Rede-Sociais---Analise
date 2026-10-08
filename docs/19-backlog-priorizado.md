@@ -105,3 +105,23 @@ Personalização · Google Ads · Pinterest · Merchant Center (se elegível) ·
 | S4 | 2.2 categoria · 2.6 busca · 1.4 matching · 3.2–3.3 editor/workflow |
 | S5 | 2.3 comparador · 2.4 guias · 5.4–5.5 · 4.3 consentimento/GA4 · 2.9 |
 | S6 | 2.7 home · 2.8 ofertas · 1.6 adaptadores · 6.1–6.2 · 4.4–4.5 · hardening, testes de carga, lançamento |
+
+## Status de execução (atualizado em 08/10/2026)
+
+| Item | Status |
+|---|---|
+| 0.1–0.6 Fundação (monorepo, schema, auth admin com 2FA, design tokens, seeds) | ✅ feito (Lighthouse CI ainda não) |
+| 1.1 CRUD de produto/variante/specs com proveniência | ✅ |
+| 1.2–1.3 Adaptadores e pipeline de ingestão | ✅ por importação de CSV (planilha e Awin); falta busca agendada nas APIs/feeds |
+| 1.4 Fila de matching | ✅ |
+| 1.5 Rollup diário | ✅ ponto do dia na importação; falta o job agendado |
+| 1.7–1.8 Anomalias, checagem de links e alertas internos | 🟡 alertas internos feitos; faltam checagem de links e anomalias no worker |
+| 2.1–2.11 Experiência do consumidor | ✅ |
+| 3.1–3.3 Notas, editor e workflow | ✅ editor por seções, sem editor visual |
+| 4.1–4.3 `/go`, eventos próprios, consentimento e GA4 | ✅ |
+| 4.4–4.5 Conversões e dashboard | 🟡 dashboard de cliques feito; falta importar conversões |
+| 5.1–5.5, 5.7 SEO/GEO | ✅ |
+| 6.x Leads e alertas de preço | ⏳ próximo |
+| 7.1–7.5 IA (consultor, RAG, busca) | ✅ consultor e RAG; falta a busca semântica na página de busca |
+
+Próximos itens: `apps/worker` (coleta agendada, rollup, checagem de links, recálculo de alertas), alertas de preço e newsletter (6.1–6.3), importação de conversões (4.4) e Lighthouse CI.

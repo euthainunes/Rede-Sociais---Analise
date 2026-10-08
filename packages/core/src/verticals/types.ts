@@ -85,3 +85,28 @@ export function validateSpecs(config: CategoryConfig, specs: Record<string, unkn
   }
   return errors;
 }
+
+/**
+ * Converte valores de formulário (strings) nos tipos da categoria. Campos vazios viram ausência.
+ * Números aceitam vírgula decimal; booleanos aceitam "on", "true", "sim", "1".
+ */
+export function coerceSpecs(config: CategoryConfig, raw: Record<string, string | undefined>): Record<string, string | number | boolean> {
+  const out: Record<string, string | number | boolean> = {};
+  for (const a of config.attributes) {
+    const v = raw[a.key];
+    if (a.type === "bool") {
+      if (v === undefined) continue;
+      out[a.key] = ["on", "true", "sim", "1"].includes(v.trim().toLowerCase());
+      continue;
+    }
+    if (v == null || v.trim() === "") continue;
+    const t = v.trim();
+    if (a.type === "int" || a.type === "decimal") {
+      // "5.000" e "1.299,90" usam ponto como milhar; "6,7" e "6.7" são decimais.
+      const thousands = /^\d{1,3}(\.\d{3})+(,\d+)?$/.test(t);
+      const n = Number((thousands ? t.replace(/\./g, "") : t).replace(",", "."));
+      out[a.key] = Number.isFinite(n) ? n : (t as unknown as number);
+    } else out[a.key] = t;
+  }
+  return out;
+}
