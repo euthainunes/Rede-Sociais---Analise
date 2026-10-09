@@ -33,6 +33,11 @@ export interface NetOptions {
   allowPrivate?: boolean;
 }
 
+/** Desenvolvimento local: NET_ALLOW_PRIVATE=1 libera http e localhost. Ignorado em produção. */
+export function netOptionsFromEnv(env: Record<string, string | undefined> = process.env): NetOptions {
+  return { allowPrivate: env.NET_ALLOW_PRIVATE === "1" && env.NODE_ENV !== "production" };
+}
+
 export async function assertPublicUrl(raw: string, opts: NetOptions = {}): Promise<URL> {
   const url = new URL(raw);
   if (url.protocol !== "https:" && !(opts.allowPrivate && url.protocol === "http:")) throw new UnsafeUrlError("apenas https");

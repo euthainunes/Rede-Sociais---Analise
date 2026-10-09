@@ -6,7 +6,7 @@
  * Várias instâncias podem rodar ao mesmo tempo: cada job usa advisory lock no Postgres.
  */
 import { createSql } from "@veredito/db";
-import { JOBS, runJob, type JobDefinition } from "@veredito/db/jobs";
+import { JOBS, netOptionsFromEnv, runJob, type JobDefinition } from "@veredito/db/jobs";
 
 const url = process.env.DATABASE_URL;
 if (!url) {
@@ -34,7 +34,7 @@ async function revalidateSite() {
 
 async function execute(job: JobDefinition) {
   const started = Date.now();
-  const r = await runJob(sql, job, { now: new Date(), net: {}, log });
+  const r = await runJob(sql, job, { now: new Date(), net: netOptionsFromEnv(), log });
   log(`job ${job.name}`, { status: r.status, ms: Date.now() - started, ...(r.result ?? {}), ...(r.error ? { error: r.error } : {}) });
   if (r.status === "ok" && job.affectsSite) await revalidateSite();
   return r.status;

@@ -71,6 +71,7 @@ pnpm --filter @veredito/worker once check-links # um job específico
 | `flag-content-review` | 1 h | Conteúdo publicado com revisão vencida vai para "Atualização necessária" |
 | `refresh-alerts` | 30 min | Recalcula os alertas internos |
 | `evaluate-price-alerts` | 30 min | Avalia os alertas de preço dos usuários e enfileira os avisos |
+| `deliver-webhooks` | 1 min | Envia os eventos de pessoas aos CRMs cadastrados, assinados, com retentativas |
 | `draft-newsletter` | 6 h (só às segundas) | Monta o rascunho da edição semanal; ninguém recebe nada até alguém revisar e enviar |
 | `send-emails` | 1 min | Envia a fila de e-mails, com retentativas |
 | `maintain-partitions` | diário | Cria as partições mensais de preços, eventos e cliques |
@@ -95,6 +96,14 @@ Várias instâncias podem rodar juntas: cada job tem um *lease* no banco, que ex
 - **Edição semanal (Admin › Newsletter):** toda segunda o worker monta o rascunho com as 5 ofertas de maior desconto real (contra a mediana de 90 dias) e o conteúdo novo ou atualizado nos últimos 14 dias. A equipe edita assunto, introdução e itens, vê a prévia e só editor-chefe ou administrador envia. Vai uma vez para cada inscrito confirmado, com o próprio link de descadastro; o banco impede envio duplicado.
 - **Minha conta (`/conta`):** link de acesso por e-mail (vale 2 h) para cancelar alertas, sair da newsletter, baixar os dados (JSON) ou excluí-los (LGPD).
 - **Proteções:** limite de pedidos por e-mail e por IP, campo-armadilha contra robôs, links assinados com `APP_SECRET` (obrigatório em produção).
+
+### Webhooks para CRM
+
+- **Admin › Webhooks (CRM)** (só administrador): cadastre a URL https do CRM e escolha os eventos: `newsletter.subscribed`, `price_alert.activated`, `person.unsubscribed` e `person.deleted`. Há botão de teste (`ping`) e reenvio de entregas que falharam.
+- **Fila no mesmo commit da mudança:** o evento só existe se a mudança foi gravada; abrir de novo um link de confirmação ou clicar duas vezes em descadastrar não gera evento repetido.
+- **Assinatura:** `X-Veredito-Signature: sha256=` + HMAC-SHA256(segredo, `timestamp.corpo`), com `X-Veredito-Timestamp` e `X-Veredito-Delivery` (para o CRM descartar duplicatas). Sem resposta 2xx, tentamos de novo em 1 min, 5 min, 30 min, 2 h e 12 h; redirecionamentos não são seguidos.
+- **Dados mínimos:** só o identificador e o e-mail da pessoa. Na exclusão (LGPD), o CRM recebe o pedido com o e-mail; o que ainda não tinha saído é descartado e, depois da entrega, o e-mail some também da nossa fila.
+- **Rede:** mesma proteção contra SSRF dos feeds (só https e IP público). Para testar com um receptor local em desenvolvimento, `NET_ALLOW_PRIVATE=1` (ignorado com `NODE_ENV=production`).
 
 Variáveis de ambiente: [`.env.example`](./.env.example). Sem `ANTHROPIC_API_KEY`, o consultor funciona em modo template (a seleção de produtos é determinística; a IA só redige a explicação).
 

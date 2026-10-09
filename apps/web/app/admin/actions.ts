@@ -13,10 +13,12 @@ import {
   addVariant, decideMatch, importFeed, login, logout, refreshInternalAlerts, saveContent, saveProduct, transitionContent,
   SESSION_HOURS, type ContentKind, type ContentStatus, type FeedFormat, type SpecSourceKind,
 } from "@veredito/db/admin";
-import { addFeedSource, setFeedSourceActive } from "@veredito/db/jobs";
+import { addFeedSource, netOptionsFromEnv, setFeedSourceActive } from "@veredito/db/jobs";
 import { resolveAlert } from "@veredito/db/admin";
 import { importConversions, type ConversionFormat } from "@veredito/db/commerce";
-import { buildEditionDraft, sendEdition, updateEdition } from "@veredito/db/people";
+import {
+  buildEditionDraft, createWebhookEndpoint, retryWebhookDelivery, sendEdition, sendWebhookTest, setWebhookEndpointActive, updateEdition,
+} from "@veredito/db/people";
 import { ADMIN_COOKIE, adminSql, errorMessage, parseSections, requestFingerprint, requireStaff } from "@/lib/admin";
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
@@ -251,4 +253,37 @@ export async function sendNewsletterAction(form: FormData) {
     redirect(back(`/admin/newsletter?id=${id}`, "erro", errorMessage(e)));
   }
   redirect(back(`/admin/newsletter?id=${id}`, "ok", `Edição enviada para a fila: ${n} inscritos confirmados.`));
+}
+
+export async function createWebhookAction(form: FormData) {
+  const { staff, sql } = await requireStaff("staff:manage");
+  try {
+    await createWebhookEndpoint(sql, staff, { name: str(form, "name"), url: str(form, "url"), events: form.getAll("events").map(String) }, netOptionsFromEnv());
+  } catch (e) {
+    redirect(back("/admin/webhooks", "erro", errorMessage(e)));
+  }
+  redirect(back("/admin/webhooks", "ok", "Endpoint criado. Copie o segredo de assinatura e configure no CRM."));
+}
+
+export async function toggleWebhookAction(form: FormData) {
+  const { staff, sql } = await requireStaff("staff:manage");
+  const active = form.get("active") === "1";
+  await setWebhookEndpointActive(sql, staff, str(form, "id"), active);
+  redirect(back("/admin/webhooks", "ok", active ? "Endpoint reativado." : "Endpoint pausado: novos eventos não serão enviados."));
+}
+
+export async function testWebhookAction(form: FormData) {
+  const { staff, sql } = await requireStaff("staff:manage");
+  await sendWebhookTest(sql, staff, str(form, "id"));
+  redirect(back("/admin/webhooks", "ok", "Evento de teste (ping) na fila. O worker envia em até 1 minuto."));
+}
+
+export async function retryWebhookAction(form: FormData) {
+  const { staff, sql } = await requireStaff("staff:manage");
+  try {
+    await retryWebhookDelivery(sql, staff, str(form, "id"));
+  } catch (e) {
+    redirect(back("/admin/webhooks", "erro", errorMessage(e)));
+  }
+  redirect(back("/admin/webhooks", "ok", "Entrega devolvida para a fila."));
 }

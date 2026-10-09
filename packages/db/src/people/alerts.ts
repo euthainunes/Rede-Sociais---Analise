@@ -7,6 +7,7 @@ import { computePriceStats, priceVerdict, type DailyPrice } from "@veredito/core
 import type { Sql } from "../client.ts";
 import { enqueueEmail, renderEmail, siteUrl } from "./email.ts";
 import { signToken, verifyToken } from "./tokens.ts";
+import { emitWebhook, personPayload } from "./webhooks.ts";
 
 export const POLICY_VERSION = "2026-10";
 const MAX_ACTIVE_ALERTS = 20;
@@ -113,6 +114,7 @@ export async function requestPriceAlert(sql: Sql, req: AlertRequest): Promise<{ 
       VALUES (${alertId}, ${person.id}, ${prod.id}, ${variant?.id ?? null}, ${req.kind}, ${req.targetPrice ?? null}, ${status},
               ${current?.price ?? null}, ${person.confirmed ? new Date() : null})`;
     await recordConsent(t, person.id, "price_alerts", true, "form", req.ipHash);
+    if (status === "active") await emitAlertActivated(t, person.id, alertId);
     if (confirmUrl) {
       const { html, text } = renderEmail({
         title: "Confirme seu alerta de preço",
@@ -126,17 +128,36 @@ export async function requestPriceAlert(sql: Sql, req: AlertRequest): Promise<{ 
   return { status };
 }
 
+/** CRM: alerta passou a valer (criado já ativo ou confirmado agora). */
+async function emitAlertActivated(sql: Sql, personId: string, alertId: string) {
+  const [a] = await sql<{ kind: string; target_price: string | null; name: string; path: string }[]>`
+    SELECT a.kind, a.target_price, p.name, '/' || c.slug || '/' || p.slug AS path
+    FROM people.price_alert a JOIN catalog.product p ON p.id = a.product_id JOIN catalog.category c ON c.id = p.category_id
+    WHERE a.id = ${alertId}`;
+  if (!a) return;
+  await emitWebhook(sql, "price_alert.activated", personId, {
+    person: await personPayload(sql, personId),
+    alert: { id: alertId, kind: a.kind, target_price: a.target_price == null ? null : Number(a.target_price) },
+    product: { name: a.name, url: siteUrl(a.path) },
+  });
+}
+
 export async function confirmAlert(sql: Sql, token: string): Promise<{ productName: string; productPath: string } | null> {
   const t = verifyToken(token, "confirm_alert");
   if (!t?.r) return null;
-  const [a] = await sql<{ product_name: string; slug: string; category: string }[]>`
-    UPDATE people.price_alert a SET status = 'active', confirmed_at = coalesce(a.confirmed_at, now())
-    FROM catalog.product p, catalog.category c
-    WHERE a.id = ${t.r} AND a.person_id = ${t.p} AND a.status IN ('pending','active') AND p.id = a.product_id AND c.id = p.category_id
-    RETURNING p.name AS product_name, p.slug, c.slug AS category`;
-  if (!a) return null;
-  await sql`UPDATE people.person SET email_confirmed_at = coalesce(email_confirmed_at, now()) WHERE id = ${t.p}`;
-  return { productName: a.product_name, productPath: `/${a.category}/${a.slug}` };
+  return sql.begin(async (tx) => {
+    const s = tx as unknown as Sql;
+    const [prev] = await tx<{ status: string }[]>`SELECT status FROM people.price_alert WHERE id = ${t.r!} AND person_id = ${t.p} FOR UPDATE`;
+    const [a] = await tx<{ product_name: string; slug: string; category: string }[]>`
+      UPDATE people.price_alert a SET status = 'active', confirmed_at = coalesce(a.confirmed_at, now())
+      FROM catalog.product p, catalog.category c
+      WHERE a.id = ${t.r!} AND a.person_id = ${t.p} AND a.status IN ('pending','active') AND p.id = a.product_id AND c.id = p.category_id
+      RETURNING p.name AS product_name, p.slug, c.slug AS category`;
+    if (!a) return null;
+    await tx`UPDATE people.person SET email_confirmed_at = coalesce(email_confirmed_at, now()) WHERE id = ${t.p}`;
+    if (prev?.status === "pending") await emitAlertActivated(s, t.p, t.r!);
+    return { productName: a.product_name, productPath: `/${a.category}/${a.slug}` };
+  });
 }
 
 export async function requestNewsletter(sql: Sql, rawEmail: string, opts: { source?: Record<string, string>; ipHash?: string | null } = {}): Promise<void> {
@@ -160,12 +181,19 @@ export async function requestNewsletter(sql: Sql, rawEmail: string, opts: { sour
 export async function confirmNewsletter(sql: Sql, token: string): Promise<boolean> {
   const t = verifyToken(token, "confirm_newsletter");
   if (!t) return false;
-  const rows = await sql`
-    UPDATE people.person SET newsletter_status = 'subscribed', email_confirmed_at = coalesce(email_confirmed_at, now())
-    WHERE id = ${t.p} AND deleted_at IS NULL AND newsletter_status IN ('pending','subscribed') RETURNING id`;
-  if (rows.length === 0) return false;
-  await recordConsent(sql, t.p, "email_marketing", true, "double_opt_in");
-  return true;
+  return sql.begin(async (tx) => {
+    const s = tx as unknown as Sql;
+    const [prev] = await tx<{ newsletter_status: string }[]>`SELECT newsletter_status FROM people.person WHERE id = ${t.p} FOR UPDATE`;
+    const rows = await tx`
+      UPDATE people.person SET newsletter_status = 'subscribed', email_confirmed_at = coalesce(email_confirmed_at, now())
+      WHERE id = ${t.p} AND deleted_at IS NULL AND newsletter_status IN ('pending','subscribed') RETURNING id`;
+    if (rows.length === 0) return false;
+    if (prev?.newsletter_status === "pending") {
+      await recordConsent(s, t.p, "email_marketing", true, "double_opt_in");
+      await emitWebhook(s, "newsletter.subscribed", t.p, { person: await personPayload(s, t.p) });
+    }
+    return true;
+  });
 }
 
 /** Sempre responde igual, exista ou não o e-mail (não revela quem é cadastrado). */
@@ -200,11 +228,20 @@ export async function cancelAlert(sql: Sql, personId: string, alertId: string): 
 }
 
 export async function unsubscribeAll(sql: Sql, personId: string): Promise<void> {
-  await sql`UPDATE people.person SET newsletter_status = 'unsubscribed' WHERE id = ${personId}`;
-  await sql`UPDATE people.price_alert SET status = 'cancelled' WHERE person_id = ${personId} AND status IN ('active','pending','paused')`;
-  await sql`UPDATE ops.email_outbox SET status = 'cancelled' WHERE person_id = ${personId} AND status = 'queued'`;
-  await recordConsent(sql, personId, "email_marketing", false, "unsubscribe");
-  await recordConsent(sql, personId, "price_alerts", false, "unsubscribe");
+  await sql.begin(async (tx) => {
+    const s = tx as unknown as Sql;
+    const [prev] = await tx<{ newsletter_status: string }[]>`SELECT newsletter_status FROM people.person WHERE id = ${personId} AND deleted_at IS NULL FOR UPDATE`;
+    if (!prev) return;
+    await tx`UPDATE people.person SET newsletter_status = 'unsubscribed' WHERE id = ${personId}`;
+    const alerts = await tx`UPDATE people.price_alert SET status = 'cancelled' WHERE person_id = ${personId} AND status IN ('active','pending','paused') RETURNING id`;
+    await tx`UPDATE ops.email_outbox SET status = 'cancelled' WHERE person_id = ${personId} AND status = 'queued'`;
+    await recordConsent(s, personId, "email_marketing", false, "unsubscribe");
+    await recordConsent(s, personId, "price_alerts", false, "unsubscribe");
+    // Clicar duas vezes no descadastro não avisa o CRM duas vezes.
+    if (prev.newsletter_status !== "unsubscribed" || alerts.length > 0) {
+      await emitWebhook(s, "person.unsubscribed", personId, { person: await personPayload(s, personId), cancelled_alerts: alerts.length });
+    }
+  });
 }
 
 export function unsubscribeFromToken(token: string) {
@@ -226,6 +263,16 @@ export async function exportPersonData(sql: Sql, personId: string) {
  */
 export async function deletePerson(sql: Sql, personId: string): Promise<void> {
   await sql.begin(async (tx) => {
+    const s = tx as unknown as Sql;
+    // CRM recebe o pedido de eliminação (com o e-mail, para achar o contato); o que ainda não saiu é descartado
+    // e, depois de entregue, o e-mail some também da nossa fila.
+    const person = await personPayload(s, personId);
+    await tx`DELETE FROM ops.webhook_delivery WHERE person_id = ${personId} AND status IN ('queued','failed','cancelled')`;
+    await tx`UPDATE ops.webhook_delivery SET payload = ${tx.json({ person: { id: personId } })} WHERE person_id = ${personId} AND status = 'delivered'`;
+    await tx`UPDATE ops.webhook_delivery SET redact_after = true WHERE person_id = ${personId} AND status = 'sending'`;
+    if ("email" in person && person.email) {
+      await emitWebhook(s, "person.deleted", personId, { person: { id: personId, email: person.email } }, { redact: true });
+    }
     await tx`DELETE FROM people.alert_delivery WHERE alert_id IN (SELECT id FROM people.price_alert WHERE person_id = ${personId})`;
     await tx`DELETE FROM people.price_alert WHERE person_id = ${personId}`;
     await tx`DELETE FROM ops.email_outbox WHERE person_id = ${personId}`;

@@ -13,7 +13,8 @@ describe("signed tokens", () => {
     const [body, sig] = t.split(".");
     const forged = Buffer.from(JSON.stringify({ a: "manage", p: "p2", e: 9_999_999_999 })).toString("base64url");
     expect(verifyToken(`${forged}.${sig}`, "manage")).toBeNull();
-    expect(verifyToken(`${body}.x${sig!.slice(1)}`, "manage")).toBeNull();
+    const flipped = (sig![0] === "x" ? "y" : "x") + sig!.slice(1); // sempre diferente do original
+    expect(verifyToken(`${body}.${flipped}`, "manage")).toBeNull();
     expect(verifyToken("lixo", "manage")).toBeNull();
   });
 });

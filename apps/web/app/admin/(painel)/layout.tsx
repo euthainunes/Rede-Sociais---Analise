@@ -20,6 +20,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
         {can(staff.role, "content:write") && <Link href="/admin/newsletter">Newsletter</Link>}
         {can(staff.role, "commission:read") && <Link href="/admin/receita">Receita</Link>}
         {can(staff.role, "staff:manage") && <Link href="/admin/emails">E-mails</Link>}
+        {can(staff.role, "staff:manage") && <Link href="/admin/webhooks">Webhooks (CRM)</Link>}
         {can(staff.role, "audit:read") && <Link href="/admin/auditoria">Auditoria</Link>}
         <Link href="/" target="_blank">Ver site ↗</Link>
         <form action={logoutAction} style={{ marginTop: "auto" }}><button className="btn btn-ghost btn-sm" type="submit">Sair</button></form>

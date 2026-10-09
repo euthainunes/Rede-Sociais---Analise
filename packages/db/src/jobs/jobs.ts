@@ -10,6 +10,7 @@ import { importOffers, type FeedFormat } from "../admin/offers.ts";
 import { evaluatePriceAlerts } from "../people/alerts.ts";
 import { buildEditionDraft } from "../people/newsletter.ts";
 import { createMailer, deliverOutbox } from "../people/email.ts";
+import { deliverWebhooks } from "../people/webhooks.ts";
 import { checkLink, fetchText, type NetOptions } from "./net.ts";
 
 export interface JobContext {
@@ -143,6 +144,11 @@ export async function sendEmails(ctx: JobContext): Promise<JobResult> {
   return deliverOutbox(ctx.sql, createMailer());
 }
 
+/** Webhooks para CRM: fila com retentativas (1, 5, 30 min, 2 h, 12 h). */
+export async function deliverCrmWebhooks(ctx: JobContext): Promise<JobResult> {
+  return deliverWebhooks(ctx.sql, { ...ctx.net, now: () => ctx.now });
+}
+
 /** Segunda-feira: monta o rascunho da semana (o envio é sempre aprovado por uma pessoa no painel). */
 export async function draftNewsletter(ctx: JobContext): Promise<JobResult> {
   if (ctx.now.getUTCDay() !== 1) return { skipped: "não é segunda-feira" };
@@ -170,6 +176,7 @@ export const JOBS: JobDefinition[] = [
   { name: "refresh-alerts", everyMinutes: 30, run: refreshAlerts, affectsSite: false },
   { name: "evaluate-price-alerts", everyMinutes: 30, run: evaluateAlerts, affectsSite: false },
   { name: "send-emails", everyMinutes: 1, run: sendEmails, affectsSite: false },
+  { name: "deliver-webhooks", everyMinutes: 1, run: deliverCrmWebhooks, affectsSite: false },
   { name: "draft-newsletter", everyMinutes: 6 * 60, run: draftNewsletter, affectsSite: false },
   { name: "maintain-partitions", everyMinutes: 24 * 60, run: maintainPartitions, affectsSite: false },
 ];
