@@ -2,7 +2,7 @@
  * Fonte de dados de baixo nível. Duas implementações: demonstração (memória) e Postgres.
  * Os serviços (services.ts) montam as páginas a partir daqui, iguais nos dois modos.
  */
-import type { Availability, Condition, DailyPrice, IncomingEvent, Specs } from "@veredito/core";
+import { classifyChannel, needsNewSession, type Availability, type Condition, type DailyPrice, type IncomingEvent, type Specs } from "@veredito/core";
 import * as demo from "./demo-data.ts";
 import type { Sql } from "./client.ts";
 
@@ -90,8 +90,24 @@ export interface DataSource {
   getSeries(variantIds: string[]): Promise<Map<string, DailyPrice[]>>;
   listContent(filter?: { type?: ContentRow["type"]; productSlug?: string }): Promise<ContentRow[]>;
   recordClick(click: ClickRecord): Promise<void>;
-  recordEvents(events: IncomingEvent[], ctx: { anonId: string | null; ts: Date }): Promise<void>;
+  recordEvents(events: IncomingEvent[], ctx: { anonId: string | null; sessionId?: string | null; ts: Date }): Promise<void>;
+  /** Abre ou estende a sessão do visitante (só com consentimento). Devolve o id da sessão, ou null sem banco. */
+  trackSession(input: SessionInput): Promise<string | null>;
 }
+
+export interface SessionInput {
+  anonId: string;
+  sessionId: string | null;
+  now: Date;
+  landingPath: string | null;
+  referrerHost: string | null;
+  siteHost: string;
+  utm: { source: string | null; medium: string | null; campaign: string | null; content: string | null; term: string | null };
+  gclid: boolean;
+  device: string | null;
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // ───────────────────────── Demonstração (memória)
 export function createDemoSource(onClick?: (c: ClickRecord) => void): DataSource {
@@ -138,6 +154,7 @@ export function createDemoSource(onClick?: (c: ClickRecord) => void): DataSource
       onClick?.(c);
     },
     recordEvents: async () => {},
+    trackSession: async () => null,
   };
 }
 
@@ -224,17 +241,37 @@ export function createPgSource(sql: Sql, opts: { today?: () => string } = {}): D
       await sql`
         INSERT INTO analytics.click (click_ref, ts, session_id, anon_id, offer_id, product_id, variant_id, merchant_id,
           source_path, page_type, cta_id, position, utm, device, price_shown, is_bot, program_key)
-        VALUES (${c.clickRef}, ${c.ts}, ${c.sessionId}, ${c.anonId}, ${c.offerId}, ${c.productId}, ${c.variantId}, ${c.merchantId},
+        VALUES (${c.clickRef}, ${c.ts},
+          ${c.sessionId && c.anonId && UUID.test(c.sessionId) ? sql`(SELECT id FROM analytics.session WHERE id = ${c.sessionId} AND anon_id = ${c.anonId})` : null},
+          ${c.anonId}, ${c.offerId}, ${c.productId}, ${c.variantId}, ${c.merchantId},
           ${c.sourcePath}, ${c.pageType}, ${c.ctaId}, ${c.position}, ${sql.json(c.utm)}, ${c.device}, ${c.priceShown}, ${c.isBot}, ${c.programKey})`;
     },
     recordEvents: async (events, ctx) => {
       if (events.length === 0) return;
-      const uuid = /^[0-9a-f-]{36}$/i;
       const rows = events.map((e) => ({
-        ts: ctx.ts, name: e.name, anon_id: ctx.anonId, path: e.path,
-        product_id: e.productId && uuid.test(e.productId) ? e.productId : null, props: e.props,
+        ts: ctx.ts, name: e.name, anon_id: ctx.anonId, session_id: ctx.sessionId ?? null, path: e.path,
+        product_id: e.productId && UUID.test(e.productId) ? e.productId : null, props: e.props,
       }));
-      await sql`INSERT INTO analytics.event ${sql(rows, "ts", "name", "anon_id", "path", "product_id", "props")}`;
+      await sql`INSERT INTO analytics.event ${sql(rows, "ts", "name", "anon_id", "session_id", "path", "product_id", "props")}`;
+    },
+    trackSession: async (s) => {
+      if (s.sessionId && UUID.test(s.sessionId)) {
+        const [cur] = await sql<{ last_seen_at: Date; utm_source: string | null; utm_campaign: string | null }[]>`
+          SELECT last_seen_at, utm_source, utm_campaign FROM analytics.session WHERE id = ${s.sessionId} AND anon_id = ${s.anonId}`;
+        const state = cur ? { lastSeenAt: cur.last_seen_at, utmSource: cur.utm_source, utmCampaign: cur.utm_campaign } : null;
+        if (!needsNewSession(state, s.now, { source: s.utm.source, campaign: s.utm.campaign })) {
+          await sql`UPDATE analytics.session SET last_seen_at = ${s.now} WHERE id = ${s.sessionId}`;
+          return s.sessionId;
+        }
+      }
+      const id = globalThis.crypto.randomUUID();
+      const channel = classifyChannel({ referrerHost: s.referrerHost, utmMedium: s.utm.medium, utmSource: s.utm.source, gclid: s.gclid ? "1" : null, siteHost: s.siteHost });
+      await sql`
+        INSERT INTO analytics.session (id, anon_id, started_at, last_seen_at, landing_path, referrer_host,
+          utm_source, utm_medium, utm_campaign, utm_content, utm_term, channel, device)
+        VALUES (${id}, ${s.anonId}, ${s.now}, ${s.now}, ${s.landingPath}, ${s.referrerHost},
+          ${s.utm.source}, ${s.utm.medium}, ${s.utm.campaign}, ${s.utm.content}, ${s.utm.term}, ${channel}, ${s.device})`;
+      return id;
     },
   };
 }

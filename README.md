@@ -82,6 +82,7 @@ Várias instâncias podem rodar juntas: cada job tem um *lease* no banco, que ex
 - **Entrada:** relatório CSV no painel (planilha em português ou formato Awin) ou postback das redes em `POST /api/webhooks/networks/<programa>`, com o corpo assinado em HMAC-SHA256 (`x-signature`, segredo `POSTBACK_SECRET_<PROGRAMA>`).
 - **Idempotente:** cada (programa, pedido) existe uma vez. Reimportar só atualiza o valor ou o status, e o status só avança (Estimada → Em validação → Aprovada → Faturada → Paga) ou vai para Estornada. Toda mudança fica no histórico.
 - **Atribuição:** com sub-ID (`click_ref`), a venda é do clique exato e herda página, produto, botão e canal. Sem sub-ID (Amazon, por exemplo), a venda é dividida igualmente entre os cliques válidos do mesmo programa na janela do cookie. Cliques de robôs nunca recebem venda.
+- **Jornada e multi-toque:** quem aceita a medição recebe um identificador aleatório (cookie `aid`, 180 dias) e cada visita vira uma sessão com o canal de origem (busca, IA, redes, newsletter, mídia paga, direto…; nova sessão após 30 min parado ou em outra campanha). Na importação, cada venda guarda as visitas dos 30 dias anteriores ao clique, e o painel compara último toque, primeiro toque, linear e por posição (40/20/40). Sem consentimento, a venda fica com o canal do próprio clique. Recusar a medição (inclusive depois, em `/privacidade`) apaga os cookies.
 - **Firewall comercial:** tudo isso é visível só para administrador e comercial; no banco, os papéis de ranking e editorial não leem essas tabelas.
 
 ### Alertas de preço e newsletter
@@ -99,6 +100,7 @@ Variáveis de ambiente: [`.env.example`](./.env.example). Sem `ANTHROPIC_API_KEY
 
 ## Garantias implementadas
 
+- **Jornada e multi-toque:** quem aceita a medição recebe um identificador aleatório (cookie `aid`, 180 dias) e cada visita vira uma sessão com o canal de origem (busca, IA, redes, newsletter, mídia paga, direto…; nova sessão após 30 min parado ou em outra campanha). Na importação, cada venda guarda as visitas dos 30 dias anteriores ao clique, e o painel compara último toque, primeiro toque, linear e por posição (40/20/40). Sem consentimento, a venda fica com o canal do próprio clique. Recusar a medição (inclusive depois, em `/privacidade`) apaga os cookies.
 - **Firewall comercial:** nenhum tipo usado em notas, ranking, melhor oferta ou consultor tem campo de comissão. No banco, os papéis de ranking e editorial não leem as tabelas de comissão.
 - **IA não inventa fatos:** a resposta do LLM passa por um verificador de números e citações. Se falhar duas vezes, o consultor usa a explicação por template.
 - **Demonstração nunca indexa:** em modo demo o site responde `noindex`, o `robots.txt` bloqueia tudo e o sitemap fica vazio.

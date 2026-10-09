@@ -4,7 +4,7 @@
  */
 import { after, NextResponse, type NextRequest } from "next/server";
 import { brand } from "@veredito/brand";
-import { generateClickRef, isCtaId, isLikelyBot } from "@veredito/core";
+import { deviceFromUserAgent, generateClickRef, isCtaId, isLikelyBot } from "@veredito/core";
 import { affiliateUrl } from "@/lib/affiliate";
 import { catalog } from "@/lib/data";
 
@@ -46,8 +46,9 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ produto: st
       await catalog().source.recordClick({
         clickRef, ts: new Date(), offerId: o.id, productId: resolved.product.id, variantId: v.id,
         merchantId: o.merchantId, programKey: o.programKey, sourcePath, pageType: pageTypeOf(sourcePath),
-        ctaId: isCtaId(ctaRaw) ? ctaRaw : null, position: sp.get("pos"), utm, device: deviceOf(ua),
-        anonId: req.cookies.get("aid")?.value ?? null, sessionId: null, priceShown: o.total, isBot: false,
+        ctaId: isCtaId(ctaRaw) ? ctaRaw : null, position: sp.get("pos"), utm, device: deviceFromUserAgent(ua),
+        // Sessão só com consentimento; o banco confere que ela pertence a este visitante.
+        anonId: req.cookies.get("aid")?.value ?? null, sessionId: req.cookies.get("sid")?.value ?? null, priceShown: o.total, isBot: false,
       });
     } catch (e) {
       console.error("click_record_failed", e instanceof Error ? e.message : e);
@@ -76,9 +77,3 @@ function pageTypeOf(path: string | null): string {
   return path.split("/").filter(Boolean).length === 2 ? "product" : "category";
 }
 
-function deviceOf(ua: string | null): string {
-  if (!ua) return "unknown";
-  if (/tablet|ipad/i.test(ua)) return "tablet";
-  if (/mobi|android|iphone/i.test(ua)) return "mobile";
-  return "desktop";
-}

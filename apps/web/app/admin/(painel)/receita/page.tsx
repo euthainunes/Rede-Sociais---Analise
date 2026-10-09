@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { ATTRIBUTION_MODEL_LABELS, ATTRIBUTION_MODELS } from "@veredito/core";
 import {
-  COMMISSION_STATUS_LABELS, recentConversions, revenueBy, revenueSummary, type RevenueDimension,
+  COMMISSION_STATUS_LABELS, recentConversions, revenueBy, revenueByJourney, revenueSummary, type RevenueDimension,
 } from "@veredito/db/commerce";
 import { PROGRAMS } from "@veredito/integrations";
 import { importConversionsAction } from "../../actions";
@@ -16,6 +17,10 @@ const DIMS: { key: RevenueDimension; label: string }[] = [
   { key: "cta_id", label: "Botão (CTA)" },
   { key: "merchant", label: "Loja" },
 ];
+const CHANNEL_LABELS: Record<string, string> = {
+  organic: "Busca orgânica", direct: "Direto", social: "Redes sociais", paid: "Mídia paga", email: "E-mail / newsletter",
+  ai_referral: "Assistentes de IA", referral: "Outros sites", unknown: "Sem jornada (sem consentimento)", unattributed: "Sem clique identificado",
+};
 const EXAMPLE = `pedido,sub_id,tag,data,valor,comissao,status
 123456,Ab3dE6gH9k,,08/10/2026 14:30,"2.899,00","86,97",pendente`;
 
@@ -27,7 +32,9 @@ export default async function RevenuePage({ searchParams }: Props) {
   const { staff, sql } = await requireStaff("commission:read");
   const days = [7, 30, 90].includes(Number(sp.dias)) ? Number(sp.dias) : 30;
   const dim = DIMS.find((d) => d.key === sp.por) ?? DIMS[0]!;
-  const [sum, rows, recent] = await Promise.all([revenueSummary(sql, staff, days), revenueBy(sql, staff, dim.key, days), recentConversions(sql, staff)]);
+  const [sum, rows, recent, journey] = await Promise.all([
+    revenueSummary(sql, staff, days), revenueBy(sql, staff, dim.key, days), recentConversions(sql, staff), revenueByJourney(sql, staff, days),
+  ]);
   const q = (o: Record<string, string>) => `/admin/receita?${new URLSearchParams({ dias: String(days), por: dim.key, ...o })}`;
   return (
     <>
@@ -59,6 +66,24 @@ export default async function RevenuePage({ searchParams }: Props) {
         ))}</tbody>
       </table></div>
       <p className="small muted">Modelo: último clique antes da venda. Vendas sem sub-ID são divididas igualmente entre os cliques do mesmo programa na janela do cookie (pedidos fracionados).</p>
+
+      <h2>Canais de aquisição por modelo de atribuição</h2>
+      <p className="small muted">
+        Considera as visitas de quem comprou nos 30 dias antes do clique (só de quem aceitou a medição). Compare os modelos:
+        um canal forte no primeiro toque traz gente nova; forte no último, fecha a decisão.
+      </p>
+      <div className="table-scroll"><table style={{ marginTop: 8 }}>
+        <thead><tr><th>Canal</th>{ATTRIBUTION_MODELS.map((m) => <th key={m}>{ATTRIBUTION_MODEL_LABELS[m]}</th>)}</tr></thead>
+        <tbody>{journey.rows.map((r) => (
+          <tr key={r.channel}><td>{CHANNEL_LABELS[r.channel] ?? r.channel}</td>{ATTRIBUTION_MODELS.map((m) => <td key={m}>{brl(r[m])}</td>)}</tr>
+        ))}</tbody>
+      </table></div>
+      <p className="small muted">
+        {journey.conversions} {journey.conversions === 1 ? "venda" : "vendas"} no período; {journey.withJourney} com jornada
+        {journey.conversions > 0 && ` (${Math.round((journey.withJourney / journey.conversions) * 100)}%)`}
+        {journey.avgTouches != null && `, em média ${journey.avgTouches.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} visitas até a compra`}.
+        As demais ficam com o canal do próprio clique.
+      </p>
 
       <h2>Últimas conversões</h2>
       <div className="table-scroll"><table>

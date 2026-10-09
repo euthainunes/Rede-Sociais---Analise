@@ -6,6 +6,8 @@
  *     click_ref  → a venda é do clique exato (sub-ID devolvido pelo programa)
  *     tag        → a venda é dividida entre os cliques daquele programa dentro da janela do cookie
  *     aggregate  → idem, marcada como "allocated"
+ * - Jornada: cada clique atribuído guarda as sessões do visitante nos 30 dias anteriores (com consentimento),
+ *   para comparar primeiro toque, último toque, linear e por posição sem recalcular nada.
  * - Só administrador e comercial leem ou escrevem (firewall comercial).
  */
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
@@ -16,6 +18,9 @@ import {
   type CommissionStatus,
   type RawConversion,
 } from "@veredito/integrations";
+import {
+  ATTRIBUTION_MODELS, classifyChannel, JOURNEY_LOOKBACK_DAYS, JOURNEY_MAX_TOUCHES, type AttributionModel,
+} from "@veredito/core";
 import type { Sql } from "../client.ts";
 import { audit } from "../admin/audit.ts";
 import type { Staff } from "../admin/auth.ts";
@@ -107,6 +112,49 @@ async function attribute(sql: Sql, conversionId: string, programKey: string, c: 
   return "allocated" as const;
 }
 
+/**
+ * Grava a jornada de cada clique atribuído: sessões do mesmo visitante (cookie "aid") iniciadas até o clique,
+ * nos últimos 30 dias, no máximo as 20 mais recentes. Sem sessões (sem consentimento), um único ponto com o
+ * canal deduzido do UTM do clique — assim os totais por canal batem em todos os modelos.
+ */
+export async function buildJourneys(sql: Sql, conversionId: string) {
+  await sql`DELETE FROM commerce.conversion_touchpoint WHERE conversion_id = ${conversionId}`;
+  await sql`
+    WITH a AS (
+      SELECT click_ref, weight FROM commerce.conversion_attribution WHERE conversion_id = ${conversionId} AND click_ref IS NOT NULL
+    ), ck AS (
+      SELECT DISTINCT ON (c.click_ref) c.click_ref, c.anon_id, c.ts, a.weight
+      FROM analytics.click c JOIN a ON a.click_ref = c.click_ref
+      WHERE c.anon_id IS NOT NULL AND NOT c.is_bot ORDER BY c.click_ref, c.ts
+    ), s AS (
+      SELECT ck.click_ref, ck.weight, se.id, se.channel, se.utm_source, se.utm_campaign, se.landing_path, se.started_at,
+             row_number() OVER (PARTITION BY ck.click_ref ORDER BY se.started_at DESC) AS recent
+      FROM ck JOIN analytics.session se ON se.anon_id = ck.anon_id AND NOT se.is_bot
+        AND se.started_at <= ck.ts AND se.started_at > ck.ts - make_interval(days => ${JOURNEY_LOOKBACK_DAYS})
+    ), kept AS (SELECT * FROM s WHERE recent <= ${JOURNEY_MAX_TOUCHES})
+    INSERT INTO commerce.conversion_touchpoint
+      (conversion_id, click_ref, click_weight, idx, n, session_id, channel, utm_source, utm_campaign, landing_path, started_at)
+    SELECT ${conversionId}, click_ref, weight,
+           row_number() OVER (PARTITION BY click_ref ORDER BY started_at), count(*) OVER (PARTITION BY click_ref),
+           id, coalesce(channel, 'direct'), utm_source, utm_campaign, landing_path, started_at
+    FROM kept`;
+  // Cliques sem jornada (e a venda sem clique) viram um ponto único.
+  const rest = await sql<{ click_ref: string | null; weight: string; utm: Record<string, string> | null }[]>`
+    SELECT a.click_ref, a.weight, (SELECT c.utm FROM analytics.click c WHERE c.click_ref = a.click_ref LIMIT 1) AS utm
+    FROM commerce.conversion_attribution a
+    WHERE a.conversion_id = ${conversionId}
+      AND NOT EXISTS (SELECT 1 FROM commerce.conversion_touchpoint t WHERE t.conversion_id = a.conversion_id AND t.click_ref IS NOT DISTINCT FROM a.click_ref)`;
+  if (rest.length === 0) return;
+  const rows = rest.map((r) => ({
+    conversion_id: conversionId, click_ref: r.click_ref, click_weight: r.weight, idx: 1, n: 1,
+    channel: r.click_ref === null ? "unattributed"
+      : r.utm?.utm_source || r.utm?.utm_medium ? classifyChannel({ utmSource: r.utm.utm_source, utmMedium: r.utm.utm_medium, siteHost: "" })
+      : "unknown",
+    utm_source: r.utm?.utm_source ?? null, utm_campaign: r.utm?.utm_campaign ?? null,
+  }));
+  await sql`INSERT INTO commerce.conversion_touchpoint ${sql(rows, "conversion_id", "click_ref", "click_weight", "idx", "n", "channel", "utm_source", "utm_campaign")}`;
+}
+
 export interface ConversionImportStats {
   total: number;
   created: number;
@@ -131,7 +179,9 @@ export async function upsertConversion(sql: Sql, actor: Staff | null, programKey
         await tx`
           INSERT INTO commerce.conversion (id, program_id, external_id, click_ref, tracking_tag, ordered_at, order_value, attribution_method, raw)
           VALUES (${id}, ${program.id}, ${c.externalId}, ${c.clickRef}, ${c.trackingTag}, ${orderedAt}, ${c.orderValue}, 'allocated', ${tx.json(c.raw as never)})`;
-        return attribute(t, id, programKey, { clickRef: c.clickRef, orderedAt }, program.cookieHours);
+        const m = await attribute(t, id, programKey, { clickRef: c.clickRef, orderedAt }, program.cookieHours);
+        await buildJourneys(t, id);
+        return m;
       })();
       await tx`UPDATE commerce.conversion SET attribution_method = ${method === "click_ref" ? "click_ref" : program.fidelity === "tag" ? "tag" : "allocated"} WHERE id = ${id}`;
       const commissionId = randomUUID();
@@ -286,6 +336,40 @@ export async function revenueBy(sql: Sql, staff: Staff, dim: RevenueDimension, d
            CASE WHEN coalesce(clk.clicks, 0) > 0 THEN round((coalesce(rev.commission, 0) / clk.clicks)::numeric, 2)::float END AS epc
     FROM rev FULL JOIN clk ON clk.key = rev.key
     ORDER BY commission DESC, clicks DESC LIMIT ${limit}`;
+}
+
+/** Peso do modelo para o ponto (idx, n), em SQL — espelha `touchWeights` do core (testado contra ele). */
+function modelWeight(sql: Sql, model: AttributionModel) {
+  switch (model) {
+    case "last": return sql`CASE WHEN t.idx = t.n THEN 1 ELSE 0 END`;
+    case "first": return sql`CASE WHEN t.idx = 1 THEN 1 ELSE 0 END`;
+    case "linear": return sql`1.0 / t.n`;
+    case "position": return sql`CASE WHEN t.n = 1 THEN 1 WHEN t.n = 2 THEN 0.5 WHEN t.idx = 1 OR t.idx = t.n THEN 0.4 ELSE 0.2 / (t.n - 2) END`;
+  }
+}
+
+export type ChannelAttributionRow = { channel: string } & Record<AttributionModel, number>;
+
+/** Comissão por canal de aquisição em cada modelo de atribuição, mais a cobertura de jornada. */
+export async function revenueByJourney(sql: Sql, staff: Staff, days = 30) {
+  requirePermission(staff, "commission:read");
+  const since = new Date(Date.now() - days * 86_400_000);
+  const cols = ATTRIBUTION_MODELS.map((m) => sql`round(sum(cm.amount * t.click_weight * (${modelWeight(sql, m)}))::numeric, 2)::float AS ${sql(m)}`);
+  const rows = await sql<ChannelAttributionRow[]>`
+    SELECT t.channel, ${cols.reduce((a, c) => sql`${a}, ${c}`)}
+    FROM commerce.conversion_touchpoint t
+    JOIN commerce.conversion cv ON cv.id = t.conversion_id
+    JOIN commerce.commission cm ON cm.conversion_id = cv.id
+    WHERE cv.ordered_at >= ${since} AND cm.status <> 'reversed'
+    GROUP BY t.channel ORDER BY 2 DESC, 1`;
+  const [cov] = await sql<{ conversions: number; with_journey: number; avg_touches: number | null }[]>`
+    SELECT count(DISTINCT cv.id)::int AS conversions,
+           count(DISTINCT cv.id) FILTER (WHERE t.session_id IS NOT NULL)::int AS with_journey,
+           (avg(t.n) FILTER (WHERE t.session_id IS NOT NULL AND t.idx = 1))::float AS avg_touches
+    FROM commerce.conversion cv JOIN commerce.commission cm ON cm.conversion_id = cv.id
+    LEFT JOIN commerce.conversion_touchpoint t ON t.conversion_id = cv.id
+    WHERE cv.ordered_at >= ${since} AND cm.status <> 'reversed'`;
+  return { rows, conversions: cov!.conversions, withJourney: cov!.with_journey, avgTouches: cov!.avg_touches };
 }
 
 export async function recentConversions(sql: Sql, staff: Staff, limit = 30) {
