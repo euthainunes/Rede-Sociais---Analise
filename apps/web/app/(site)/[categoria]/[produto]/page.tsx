@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PRICE_LABELS } from "@veredito/core";
+import { AlertForm } from "@/components/AlertForm";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { JsonLd } from "@/components/JsonLd";
 import { PriceBadge } from "@/components/PriceBadge";
@@ -16,7 +17,7 @@ import { productJsonLd } from "@/lib/seo";
 
 type Props = {
   params: Promise<{ categoria: string; produto: string }>;
-  searchParams: Promise<{ v?: string; periodo?: string }>;
+  searchParams: Promise<{ v?: string; periodo?: string; alerta?: string }>;
 };
 
 const RANGES = [
@@ -106,6 +107,7 @@ export default async function ProductPageView({ params, searchParams }: Props) {
             )}
             <p className="small muted" style={{ marginTop: 8 }}>Podemos receber comissão por compras feitas pelos links. Isso não muda nossa nota.</p>
           </section>
+          <AlertForm productSlug={p.slug} variantSlug={sel.slug} returnTo={`${s.url}?v=${sel.slug}`} status={sp.alerta} suggested={best?.total ?? null} />
         </div>
       </div>
 

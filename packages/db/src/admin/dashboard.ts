@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { Sql } from "../client.ts";
 
 export async function dashboardMetrics(sql: Sql, days = 7) {
-  const [counts] = await sql<{ products: number; published: number; offers: number; stale: number; pending: number; drafts: number; needs_update: number }[]>`
+  const [counts] = await sql<{ products: number; published: number; offers: number; stale: number; pending: number; drafts: number; needs_update: number; alerts_active: number; subscribers: number }[]>`
     SELECT
       (SELECT count(*)::int FROM catalog.product WHERE deleted_at IS NULL) AS products,
       (SELECT count(*)::int FROM catalog.product WHERE deleted_at IS NULL AND publish_status = 'published') AS published,
@@ -11,7 +11,9 @@ export async function dashboardMetrics(sql: Sql, days = 7) {
       (SELECT count(*)::int FROM commerce.offer WHERE status = 'active' AND last_checked_at < now() - interval '24 hours') AS stale,
       (SELECT count(*)::int FROM ops.match_candidate WHERE status = 'pending') AS pending,
       (SELECT count(*)::int FROM editorial.content WHERE status IN ('draft','in_review','approved')) AS drafts,
-      (SELECT count(*)::int FROM editorial.content WHERE status = 'needs_update') AS needs_update`;
+      (SELECT count(*)::int FROM editorial.content WHERE status = 'needs_update') AS needs_update,
+      (SELECT count(*)::int FROM people.price_alert WHERE status = 'active') AS alerts_active,
+      (SELECT count(*)::int FROM people.person WHERE newsletter_status = 'subscribed' AND deleted_at IS NULL) AS subscribers`;
   const since = new Date(Date.now() - days * 86_400_000);
   const [clicks] = await sql<{ total: number; bots: number }[]>`
     SELECT count(*) FILTER (WHERE NOT is_bot)::int AS total, count(*) FILTER (WHERE is_bot)::int AS bots

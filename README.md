@@ -69,9 +69,21 @@ pnpm --filter @veredito/worker once check-links # um job específico
 | `expire-stale-offers` | 1 h | Oferta que nenhuma fonte confirma há 7 dias sai do site (o histórico fica) |
 | `flag-content-review` | 1 h | Conteúdo publicado com revisão vencida vai para "Atualização necessária" |
 | `refresh-alerts` | 30 min | Recalcula os alertas internos |
+| `evaluate-price-alerts` | 30 min | Avalia os alertas de preço dos usuários e enfileira os avisos |
+| `send-emails` | 1 min | Envia a fila de e-mails, com retentativas |
 | `maintain-partitions` | diário | Cria as partições mensais de preços, eventos e cliques |
 
 Várias instâncias podem rodar juntas: cada job tem um *lease* no banco, que expira sozinho se o processo cair. Toda execução fica em `ops.job_run` e aparece na visão geral do painel. Preço fora de ±60% da mediana de 90 dias pausa a oferta e abre alerta. O acesso de rede tem proteção contra SSRF: só https e só IPs públicos. Sem servidor dedicado, o workflow `.github/workflows/worker.yml` roda tudo a cada 15 minutos (basta configurar o segredo `WORKER_DATABASE_URL`).
+
+### Alertas de preço e newsletter
+
+- **Sem senha:** o usuário informa o e-mail e confirma pelo link (dupla confirmação na primeira vez; depois os alertas já nascem ativos). Toda escolha gera registro de consentimento com a versão da política.
+- **Tipos de alerta:** preço-alvo, qualquer queda de 3% ou mais, "virou bom preço" pelo nosso histórico. O worker avalia a cada 30 minutos e espera 72 h entre avisos do mesmo alerta.
+- **O e-mail de alerta sempre aponta para a nossa página** (com UTM), nunca para o link de afiliado, porque vários programas proíbem isso.
+- **Fila de e-mails:** o site só enfileira; o worker envia a cada minuto pelo Resend (`EMAIL_PROVIDER=resend`), com até 5 tentativas. Em desenvolvimento (`console`), nada é enviado e o painel (Admin › E-mails) mostra os links para testar.
+- **Descadastro em um clique** (link no rodapé + cabeçalhos `List-Unsubscribe` / RFC 8058).
+- **Minha conta (`/conta`):** link de acesso por e-mail (vale 2 h) para cancelar alertas, sair da newsletter, baixar os dados (JSON) ou excluí-los (LGPD).
+- **Proteções:** limite de pedidos por e-mail e por IP, campo-armadilha contra robôs, links assinados com `APP_SECRET` (obrigatório em produção).
 
 Variáveis de ambiente: [`.env.example`](./.env.example). Sem `ANTHROPIC_API_KEY`, o consultor funciona em modo template (a seleção de produtos é determinística; a IA só redige a explicação).
 

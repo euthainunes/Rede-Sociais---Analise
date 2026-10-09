@@ -36,6 +36,8 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
             <Link href="/metodologia/precos">Como analisamos preços</Link>
             <Link href="/como-ganhamos-dinheiro">Como ganhamos dinheiro</Link>
             <Link href="/privacidade">Privacidade</Link>
+            <Link href="/newsletter">Newsletter</Link>
+            <Link href="/conta">Minha conta</Link>
           </nav>
           <p>
             {brand.name} é independente. Podemos receber comissão quando você compra pelos nossos links — isso nunca

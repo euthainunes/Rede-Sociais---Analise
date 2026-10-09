@@ -25,6 +25,7 @@ export default async function Dashboard({ searchParams }: Props) {
         <div className="kpi"><span className="small muted">Produtos publicados</span><strong>{m.counts.published}</strong><span className="small muted">de {m.counts.products}</span></div>
         <div className="kpi"><span className="small muted">Ofertas ativas</span><strong>{m.counts.offers}</strong><span className="small muted">{m.counts.stale} com preço &gt; 24 h</span></div>
         <div className="kpi"><span className="small muted">Fila de matching</span><strong>{m.counts.pending}</strong><Link className="small" href="/admin/ofertas">revisar</Link></div>
+        <div className="kpi"><span className="small muted">Alertas de preço ativos</span><strong>{m.counts.alerts_active}</strong><span className="small muted">{m.counts.subscribers} na newsletter</span></div>
         <div className="kpi"><span className="small muted">Conteúdo em andamento</span><strong>{m.counts.drafts}</strong><span className="small muted">{m.counts.needs_update} precisam de atualização</span></div>
       </section>
 

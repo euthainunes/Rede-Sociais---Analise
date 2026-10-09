@@ -7,6 +7,8 @@ import type { Sql } from "../client.ts";
 import { audit } from "../admin/audit.ts";
 import { refreshInternalAlerts } from "../admin/dashboard.ts";
 import { importOffers, type FeedFormat } from "../admin/offers.ts";
+import { evaluatePriceAlerts } from "../people/alerts.ts";
+import { createMailer, deliverOutbox } from "../people/email.ts";
 import { checkLink, fetchText, type NetOptions } from "./net.ts";
 
 export interface JobContext {
@@ -132,6 +134,14 @@ export async function maintainPartitions(ctx: JobContext): Promise<JobResult> {
   return { ok: true };
 }
 
+export async function evaluateAlerts(ctx: JobContext): Promise<JobResult> {
+  return evaluatePriceAlerts(ctx.sql, ctx.now);
+}
+
+export async function sendEmails(ctx: JobContext): Promise<JobResult> {
+  return deliverOutbox(ctx.sql, createMailer());
+}
+
 export interface JobDefinition {
   name: string;
   everyMinutes: number;
@@ -147,6 +157,8 @@ export const JOBS: JobDefinition[] = [
   { name: "expire-stale-offers", everyMinutes: 60, run: expireStaleOffers, affectsSite: true },
   { name: "flag-content-review", everyMinutes: 60, run: flagContentForReview, affectsSite: false },
   { name: "refresh-alerts", everyMinutes: 30, run: refreshAlerts, affectsSite: false },
+  { name: "evaluate-price-alerts", everyMinutes: 30, run: evaluateAlerts, affectsSite: false },
+  { name: "send-emails", everyMinutes: 1, run: sendEmails, affectsSite: false },
   { name: "maintain-partitions", everyMinutes: 24 * 60, run: maintainPartitions, affectsSite: false },
 ];
 

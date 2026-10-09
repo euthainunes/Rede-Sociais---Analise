@@ -8,7 +8,7 @@ import { isDemo } from "@/lib/data";
  */
 export default function robots(): MetadataRoute.Robots {
   if (isDemo()) return { rules: [{ userAgent: "*", disallow: "/" }] };
-  const privatePaths = ["/go/", "/s/", "/buscar", "/comparar", "/api/", "/admin", "/conta"];
+  const privatePaths = ["/go/", "/s/", "/buscar", "/comparar", "/api/", "/admin", "/conta", "/alertas/", "/newsletter/confirmar", "/descadastrar"];
   return {
     rules: [
       { userAgent: "*", allow: "/", disallow: privatePaths },

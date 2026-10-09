@@ -121,7 +121,9 @@ Personalização · Google Ads · Pinterest · Merchant Center (se elegível) ·
 | 4.1–4.3 `/go`, eventos próprios, consentimento e GA4 | ✅ |
 | 4.4–4.5 Conversões e dashboard | 🟡 dashboard de cliques feito; falta importar conversões |
 | 5.1–5.5, 5.7 SEO/GEO | ✅ |
-| 6.x Leads e alertas de preço | ⏳ próximo |
+| 6.1–6.3 Newsletter, alerta de preço, conta e direitos LGPD | ✅ |
+| 6.4 Alertas completos | ✅ preço-alvo, queda, bom preço (volta ao estoque no backend) |
+| 6.5 Webhooks para CRM | ⏳ |
 | 7.1–7.5 IA (consultor, RAG, busca) | ✅ consultor e RAG; falta a busca semântica na página de busca |
 
-Próximos itens: alertas de preço e newsletter (6.1–6.3), importação de conversões e receita (4.4) e Lighthouse CI.
+Próximos itens: importação de conversões e receita (4.4), envio semanal da newsletter, webhooks de CRM (6.5) e Lighthouse CI.
