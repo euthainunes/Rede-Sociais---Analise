@@ -901,6 +901,8 @@ As referências enviadas foram usadas como **guia de silhueta e paleta**, simpli
 
 ![Prévia dos personagens](arte/personagens-preview.png)
 
+> Pacote de arte completo (inimigos, itens, tiles, 6 cenários, HUD e telas) em [`docs/arte/README.md`](arte/README.md), gerado a partir de `src/art/`.
+
 **Traços de identificação (o que precisa ser reconhecível mesmo pequeno):**
 - **Capitão:** cabelo castanho-escuro volumoso, rosto sem barba, boca reta e séria, terno grafite, gravata azul-clara, broche dourado na lapela.
 - **L-Livre:** cabelo e barba brancos, terno azul-marinho, gravata rosa, faixa verde e amarela em diagonal.

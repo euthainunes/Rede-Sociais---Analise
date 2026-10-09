@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BR-WAR — Galeria de Arte</title>
+<style>
+  :root { --bg: #11131c; --fg: #e8e6e0; --muted: #9aa0b0; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.4 system-ui, sans-serif; }
+  main { max-width: 1180px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 8px 0 16px; }
+  figure { margin: 0 0 24px; }
+  figcaption { color: var(--muted); margin-top: 6px; }
+  canvas { width: 100%; height: auto; image-rendering: pixelated; display: block; border-radius: 4px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>BR-WAR — galeria de arte (renderizada em tempo real a partir de <code>src/art</code>)</h1>
+  <div id="list"></div>
+</main>
+<script type="module">
+  import { SCENES, W, H } from '../src/art/scenes.js';
+  import { drawSheet, SHEET_W, SHEET_H } from '../src/art/sheet.js';
+
+  const CAPTIONS = {
+    title: 'Tela inicial', selecao: 'Seleção de personagem', fase1: 'Fase 1 — Comício no Bairro',
+    fase2: 'Fase 2 — Domingo na Avenida', fase3: 'Fase 3 — Labirinto da Repartição', fase4: 'Fase 4 — Grupo da Família',
+    fase5: 'Fase 5 — Votação no Plenário', fase6: 'Fase 6 — Rampa do Planalto (chefe)', conclusao: 'Fase concluída',
+    gameOver: 'Game over', celular: 'Fase 1 com controles de toque (celular)', sheet: 'Folha de sprites e tiles',
+  };
+  const list = document.getElementById('list');
+  function add(id, w, h, fn) {
+    const fig = document.createElement('figure');
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h; c.id = id;
+    const ctx = c.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    fn(ctx);
+    const cap = document.createElement('figcaption');
+    cap.textContent = CAPTIONS[id] ?? id;
+    fig.append(c, cap);
+    list.append(fig);
+  }
+  try {
+    for (const [id, fn] of Object.entries(SCENES)) add(id, W, H, fn);
+    add('sheet', SHEET_W, SHEET_H, drawSheet);
+    document.body.dataset.ready = '1';
+  } catch (e) {
+    document.body.dataset.error = String(e.stack || e);
+    throw e;
+  }
+</script>
+</body>
+</html>
