@@ -4,6 +4,8 @@ import { getEdition, listEditions, previewEdition } from "@veredito/db/people";
 import { buildNewsletterAction, sendNewsletterAction, updateNewsletterAction } from "../../actions";
 import { Flash } from "../../Flash";
 import { requireStaff } from "@/lib/admin";
+import { ActionForm } from "../../ActionForm";
+import { dateTimeBR } from "@/lib/format";
 
 const STATUS: Record<string, string> = { draft: "rascunho", sending: "enviando", sent: "enviada", cancelled: "cancelada" };
 
@@ -45,8 +47,8 @@ export default async function NewsletterAdmin({ searchParams }: Props) {
       {current && (
         <section style={{ marginTop: 24 }}>
           <h2>Edição {current.slug}</h2>
-          <p className="small muted">Preços de {current.prices_as_of.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}.</p>
-          <form action={updateNewsletterAction} className="stack">
+          <p className="small muted">Preços de {dateTimeBR(current.prices_as_of)}.</p>
+          <ActionForm action={updateNewsletterAction} className="stack">
             <input type="hidden" name="id" value={current.id} />
             <input type="hidden" name="count" value={current.items.length} />
             <label>Assunto<input type="text" name="subject" defaultValue={current.subject} maxLength={120} required disabled={!draft} /></label>
@@ -61,7 +63,7 @@ export default async function NewsletterAdmin({ searchParams }: Props) {
               ))}
             </fieldset>
             {draft && <button className="btn btn-sm" type="submit">Salvar edição</button>}
-          </form>
+          </ActionForm>
 
           {draft && can(staff.role, "content:publish") && (
             <form action={sendNewsletterAction} className="stack" style={{ marginTop: 16 }}>

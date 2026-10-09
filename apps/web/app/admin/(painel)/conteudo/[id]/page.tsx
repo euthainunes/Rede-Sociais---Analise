@@ -5,6 +5,7 @@ import { transitionContentAction } from "../../../actions";
 import { Flash } from "../../../Flash";
 import { ContentForm } from "../ContentForm";
 import { requireStaff, sectionsToText } from "@/lib/admin";
+import { dateTimeBR } from "@/lib/format";
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ ok?: string; erro?: string }> };
 
@@ -29,7 +30,7 @@ export default async function EditContent({ params, searchParams }: Props) {
       {c.live && (
         <p className="small">
           <Link href={c.url_path} target="_blank">Ver no site ↗</Link>
-          {status !== "published" && <> · No ar continua a versão publicada em {new Date(c.live_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}. As mudanças só aparecem no site quando forem publicadas.</>}
+          {status !== "published" && <> · No ar continua a versão publicada em {dateTimeBR(c.live_at)}. As mudanças só aparecem no site quando forem publicadas.</>}
         </p>
       )}
       {status === "archived" && c.published_at && <p className="small muted">Arquivado: fora do site. Para voltar, mova para Rascunho e publique de novo.</p>}
@@ -45,7 +46,7 @@ export default async function EditContent({ params, searchParams }: Props) {
         intro: body.intro ?? "", sections: sectionsToText(body.sections), picks: (body.picks ?? []).map((p) => `${p.role} | ${p.productSlug} | ${p.note}`).join("\n"),
       }} />
       <h2>Revisões</h2>
-      <ul>{data.revisions.map((r, i) => <li key={i} className="small">{new Date(r.created_at).toLocaleString("pt-BR")} — {r.email ?? "sistema"}{r.change_note ? `: ${r.change_note}` : ""}</li>)}</ul>
+      <ul>{data.revisions.map((r, i) => <li key={i} className="small">{dateTimeBR(r.created_at)} — {r.email ?? "sistema"}{r.change_note ? `: ${r.change_note}` : ""}</li>)}</ul>
     </>
   );
 }

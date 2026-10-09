@@ -1,4 +1,5 @@
 import { saveContentAction } from "../../actions";
+import { ActionForm } from "../../ActionForm";
 
 export interface ContentFormValues {
   id?: string;
@@ -13,7 +14,7 @@ export interface ContentFormValues {
 
 export function ContentForm({ v, canWrite }: { v: ContentFormValues; canWrite: boolean }) {
   return (
-    <form action={saveContentAction} className="stack">
+    <ActionForm action={saveContentAction} className="stack">
       {v.id && <input type="hidden" name="id" value={v.id} />}
       <input type="hidden" name="category" value="celulares" />
       <fieldset disabled={!canWrite}>
@@ -45,6 +46,6 @@ export function ContentForm({ v, canWrite }: { v: ContentFormValues; canWrite: b
       </fieldset>
       <p className="small muted">Números de specs e preços não devem ser digitados no texto: eles mudam. A página já mostra os dados atuais ao lado da review.</p>
       {canWrite && <button className="btn btn-primary" type="submit">Salvar rascunho / revisão</button>}
-    </form>
+    </ActionForm>
   );
 }

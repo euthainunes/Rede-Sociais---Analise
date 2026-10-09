@@ -4,6 +4,8 @@ import { listFeedSources } from "@veredito/db/jobs";
 import { addFeedSourceAction, decideMatchAction, importFeedAction, toggleFeedSourceAction } from "../../actions";
 import { Flash } from "../../Flash";
 import { requireStaff } from "@/lib/admin";
+import { ActionForm } from "../../ActionForm";
+import { dateTimeBR } from "@/lib/format";
 
 const EXAMPLE = `id,titulo,url,preco_a_vista,preco_de,frete,disponibilidade,gtin,condicao
 SKU-1,Smartphone Órbita S9 256GB Preto,https://loja.example/p/1,"2.749,00","3.299,00",0,sim,2000000000070,novo`;
@@ -21,7 +23,7 @@ export default async function OffersAdmin({ searchParams }: { searchParams: Prom
           Cada linha é casada com uma versão do catálogo por GTIN, MPN ou título. Casos com confiança abaixo de 90% vão para a fila abaixo.
           Linhas sem preço ou com URL que não seja https são descartadas.
         </p>
-        <form action={importFeedAction} className="stack">
+        <ActionForm action={importFeedAction} className="stack">
           <div className="form-grid">
             <label>Loja<input type="text" name="merchant" required placeholder="Ex.: Loja Alfa" /></label>
             <label>Programa de afiliados
@@ -40,7 +42,7 @@ export default async function OffersAdmin({ searchParams }: { searchParams: Prom
           </div>
           <label>…ou cole o conteúdo<textarea name="content" rows={5} placeholder={EXAMPLE} /></label>
           <button className="btn btn-primary" type="submit">Importar</button>
-        </form>
+        </ActionForm>
       </section>
 
       <section className="card" style={{ marginTop: 16 }}>
@@ -53,7 +55,7 @@ export default async function OffersAdmin({ searchParams }: { searchParams: Prom
               <tr key={f.id}>
                 <td>{f.merchant}<br /><span className="small muted">{f.url}</span></td>
                 <td>{f.format}</td><td>{f.interval_minutes} min</td>
-                <td className="small">{f.last_run_at ? f.last_run_at.toLocaleString("pt-BR") : "nunca"}{" "}
+                <td className="small">{f.last_run_at ? dateTimeBR(f.last_run_at) : "nunca"}{" "}
                   {f.last_status && <span className={`badge ${f.last_status === "ok" ? "good" : "high"}`}>{f.last_status}</span>}
                   {f.last_error && <><br /><span className="muted">{f.last_error}</span></>}
                 </td>
@@ -67,7 +69,7 @@ export default async function OffersAdmin({ searchParams }: { searchParams: Prom
             ))}</tbody>
           </table></div>
         )}
-        <form action={addFeedSourceAction} className="inline" style={{ marginTop: 12 }}>
+        <ActionForm action={addFeedSourceAction} className="inline" style={{ marginTop: 12 }}>
           <label>Loja<input type="text" name="merchant" required /></label>
           <label>URL do feed (https)<input type="url" name="url" required pattern="https://.*" placeholder="https://..." /></label>
           <label>Formato<select name="format" defaultValue="planilha"><option value="planilha">Planilha CSV</option><option value="awin">Awin</option></select></label>
@@ -79,7 +81,7 @@ export default async function OffersAdmin({ searchParams }: { searchParams: Prom
             </select>
           </label>
           <button className="btn btn-primary btn-sm" type="submit">Agendar</button>
-        </form>
+        </ActionForm>
       </section>
 
       <h2>Fila de matching ({queue.length})</h2>

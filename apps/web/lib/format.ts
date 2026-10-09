@@ -26,10 +26,27 @@ export function formatSpec(value: unknown, unit?: string, enumValues?: { key: st
   return unit ? `${v} ${unit}` : v;
 }
 
-export function dateBR(iso: string): string {
-  return new Date(iso.length === 10 ? `${iso}T12:00:00Z` : iso).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
+/** Todas as datas do site e do painel saem no horário de Brasília, independente do fuso do servidor (UTC na Netlify). */
+const TZ = "America/Sao_Paulo";
+type When = Date | string;
+const asDate = (d: When) => (d instanceof Date ? d : new Date(d.length === 10 ? `${d}T12:00:00Z` : d));
+
+/** 09/10/2026 */
+export function dateBR(d: When): string {
+  return asDate(d).toLocaleDateString("pt-BR", { timeZone: TZ });
 }
 
-export function dateTimeBR(iso: string): string {
-  return new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+/** 09/10, 14:19 */
+export function dateTimeBR(d: When): string {
+  return asDate(d).toLocaleString("pt-BR", { timeZone: TZ, day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
+/** 09/10/2026, 14:19:05 — para auditoria e registros. */
+export function fullDateTimeBR(d: When): string {
+  return asDate(d).toLocaleString("pt-BR", { timeZone: TZ });
+}
+
+/** 14:19 */
+export function timeBR(d: When): string {
+  return asDate(d).toLocaleTimeString("pt-BR", { timeZone: TZ, hour: "2-digit", minute: "2-digit" });
 }
