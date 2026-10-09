@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BR-WAR — Missão Patriota (arte)</title>
+<style>
+  body { margin: 0; background: #11131c; color: #e8e6e0; font: 14px/1.4 system-ui, sans-serif; }
+  main { max-width: 1180px; margin: 0 auto; padding: 16px; }
+  figure { margin: 0 0 24px; }
+  figcaption { color: #9aa0b0; margin-top: 6px; }
+  canvas { width: 100%; height: auto; image-rendering: pixelated; display: block; border-radius: 4px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>BR-WAR — Missão Patriota (prévia de arte)</h1>
+  <div id="list"></div>
+</main>
+<script type="module">
+  import { SCENES_MISSAO, W, H } from '../src/art/missao/scenes.js';
+  import { drawSheetMissao, SHEET_W, SHEET_H } from '../src/art/missao/sheet.js';
+  const CAP = {
+    title: 'Tela inicial', mapa: 'Mapa até Brasília', missao: 'Cartão de missão (antes da fase)', fase1: 'Fase 1 — Acampamento do Quartel', fase2: 'Fase 2 — Rodovia do Caminhão',
+    fase3: 'Fase 3 — A Fábrica de Chocolate', fase4: 'Fase 4 — Missão Tio Sam', fase5: 'Fase 5 — Grupo da Família',
+    fase6: 'Fase 6 — Domiciliar 2.0', fase7: 'Fase 7 — 25 de Outubro', checagem: 'Tela de Checagem (fim de fase)',
+    gameOver: 'Game over (Fé zerada)', final: 'Final', sheet: 'Folha de sprites',
+  };
+  const list = document.getElementById('list');
+  function add(id, w, h, fn) {
+    const fig = document.createElement('figure');
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h; c.id = id;
+    const ctx = c.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    fn(ctx);
+    const cap = document.createElement('figcaption');
+    cap.textContent = CAP[id] ?? id;
+    fig.append(c, cap);
+    list.append(fig);
+  }
+  try {
+    for (const [id, fn] of Object.entries(SCENES_MISSAO)) add(id, W, H, fn);
+    add('sheet', SHEET_W, SHEET_H, drawSheetMissao);
+    document.body.dataset.ready = '1';
+  } catch (e) { document.body.dataset.error = String(e.stack || e); throw e; }
+</script>
+</body>
+</html>

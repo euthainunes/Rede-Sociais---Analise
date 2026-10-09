@@ -27,6 +27,26 @@ export const THEMES = {
     top: '#2f7a4a', topEdge: '#4fa06a', topShadow: '#1f5a34', fill: '#6b4426', fillDot: '#5a381e', fillLine: '#8a5a34',
     block: '#8a5a34', blockMortar: '#a8733f', blockDark: '#5a381e',
   },
+  quartel: {
+    top: '#5aa83a', topEdge: '#8ad060', topShadow: '#3a7a2a', fill: '#8a5a34', fillDot: '#6e4626', fillLine: '#a0703c',
+    block: '#5a6a3a', blockMortar: '#7a8a52', blockDark: '#3e4a28',
+  },
+  rodovia: {
+    top: '#9a9aa0', topEdge: '#c0c0c8', topShadow: '#6a6a70', fill: '#2e2e34', fillDot: '#26262c', fillLine: '#f5d000',
+    block: '#c8c8c8', blockMortar: '#e8e8e8', blockDark: '#8a8a8a',
+  },
+  chocolate: {
+    top: '#c9925a', topEdge: '#e8b87a', topShadow: '#8a5a2c', fill: '#4a2614', fillDot: '#3a1c0e', fillLine: '#6b3a1a',
+    block: '#6b3a1a', blockMortar: '#8a4e26', blockDark: '#3a1c0e',
+  },
+  porto: {
+    top: '#a8a49a', topEdge: '#d0ccc0', topShadow: '#7a766c', fill: '#5a5850', fillDot: '#4a4840', fillLine: '#f5d000',
+    block: '#c8202f', blockMortar: '#e04050', blockDark: '#8a1420',
+  },
+  casa: {
+    top: '#a8703c', topEdge: '#c99a60', topShadow: '#7a4e26', fill: '#5a3a1e', fillDot: '#4a2e16', fillLine: '#6a4626',
+    block: '#8a6a9a', blockMortar: '#a88ab8', blockDark: '#5a4468',
+  },
   planalto: {
     top: '#f2efe8', topEdge: '#ffffff', topShadow: '#c9c4b8', fill: '#d8d2c4', fillDot: '#c6bfae', fillLine: '#b8b0a0',
     block: '#ebe7de', blockMortar: '#ffffff', blockDark: '#bdb6a6',
@@ -46,7 +66,7 @@ export function drawGround(ctx, theme, x, y, w, h, seed = 7) {
   rect(ctx, x, y + 5, w, 1, t.topShadow);
   for (let gx = x; gx < x + w; gx += 16) rect(ctx, gx, y + 1, 1, 4, t.topShadow);
 
-  if (theme === 'bairro' || theme === 'avenida') {
+  if (theme === 'bairro' || theme === 'avenida' || theme === 'rodovia') {
     // faixa de asfalto pintada
     for (let gx = x + 4; gx < x + w; gx += 24) rect(ctx, gx, y + 16, 12, 2, t.fillLine);
   }
@@ -67,6 +87,17 @@ export function drawGround(ctx, theme, x, y, w, h, seed = 7) {
       rect(ctx, gx, y + 6, 16, h - 6, (gx / 16) % 2 ? t.fill : t.fillLine);
       rect(ctx, gx, y + 6, 1, h - 6, t.fillDot);
     }
+  }
+  if (theme === 'casa') {
+    // assoalho de tacos
+    for (let gy = y + 6; gy < y + h; gy += 5) {
+      rect(ctx, x, gy, w, 1, t.fillDot);
+      for (let gx = x + ((gy / 5) % 2 ? 6 : 0); gx < x + w; gx += 12) rect(ctx, gx, gy, 1, 5, t.fillDot);
+    }
+  }
+  if (theme === 'chocolate') {
+    // chocolate escorrendo da borda
+    for (let gx = x + 3; gx < x + w; gx += 11) rect(ctx, gx, y + 6, 3, 3 + ((gx * 7) % 5), '#6b3a1a');
   }
   if (theme === 'planalto') {
     // pedra portuguesa em ondas (padrão preto e branco)
@@ -122,6 +153,36 @@ export function drawBlock(ctx, theme, x, y, w = 16, h = 16) {
     rect(ctx, x + w - 5, y + 2, 2, h - 2, t.blockDark);
     return;
   }
+  if (theme === 'chocolate') {
+    // barra de chocolate em gomos
+    rect(ctx, x, y, w, h, t.blockDark);
+    for (let gx = x; gx < x + w; gx += 8) for (let gy = y; gy < y + h; gy += 8) {
+      rect(ctx, gx + 1, gy + 1, 6, 6, t.block);
+      rect(ctx, gx + 1, gy + 1, 6, 1, t.blockMortar);
+    }
+    return;
+  }
+  if (theme === 'porto') {
+    // contêiner com frisos verticais
+    rect(ctx, x, y, w, h, t.block);
+    for (let gx = x + 2; gx < x + w - 1; gx += 3) rect(ctx, gx, y + 1, 1, h - 2, t.blockDark);
+    rect(ctx, x, y, w, 1, t.blockMortar);
+    rect(ctx, x, y + h - 1, w, 1, t.blockDark);
+    return;
+  }
+  if (theme === 'quartel') {
+    // sacos de areia
+    rect(ctx, x, y, w, h, '#3e4a28');
+    for (let row = 0; row < h / 6; row++) {
+      const off = row % 2 ? 4 : 0;
+      for (let bx = -off; bx < w; bx += 8) {
+        const sx = Math.max(x, x + bx);
+        const ex = Math.min(x + w, x + bx + 8);
+        if (ex > sx + 1) { rect(ctx, sx, y + row * 6, ex - sx - 1, 5, '#c8b07a'); rect(ctx, sx, y + row * 6 + 4, ex - sx - 1, 1, '#9a8458'); }
+      }
+    }
+    return;
+  }
   // concreto / madeira
   rect(ctx, x, y, w, h, t.block);
   rect(ctx, x, y, w, 1, t.blockMortar);
@@ -168,6 +229,43 @@ export function drawOneWay(ctx, theme, x, y, w) {
     rect(ctx, x, y + 3, w, 2, '#5a381e');
     rect(ctx, x + 2, y + 5, 2, 6, '#5a381e');
     rect(ctx, x + w - 4, y + 5, 2, 6, '#5a381e');
+    return;
+  }
+  if (theme === 'quartel') {
+    // lona de barraca esticada
+    rect(ctx, x, y, w, 4, '#2f80ed');
+    rect(ctx, x, y, w, 1, '#6ab0ff');
+    for (let i = 0; i < w; i += 8) rect(ctx, x + i, y + 4, 4, 2, '#1f5ab0');
+    return;
+  }
+  if (theme === 'rodovia') {
+    // defensa metálica (guard-rail)
+    rect(ctx, x, y, w, 4, '#c8ccd4');
+    rect(ctx, x, y + 1, w, 1, '#8a8e96');
+    for (let i = 4; i < w; i += 16) rect(ctx, x + i, y + 4, 2, 8, '#6a6e76');
+    return;
+  }
+  if (theme === 'chocolate') {
+    // esteira rolante
+    rect(ctx, x, y, w, 5, '#3a3a3a');
+    for (let i = 0; i < w; i += 4) rect(ctx, x + i, y, 2, 1, '#8a8a8a');
+    rect(ctx, x, y + 5, w, 2, '#1a1a1a');
+    for (let i = 2; i < w; i += 8) rect(ctx, x + i, y + 2, 3, 3, '#5a5a5a');
+    return;
+  }
+  if (theme === 'porto') {
+    // palete de madeira
+    rect(ctx, x, y, w, 2, '#c08a4a');
+    for (let i = 0; i < w; i += 6) rect(ctx, x + i, y + 2, 3, 3, '#8a5a2a');
+    rect(ctx, x, y + 5, w, 2, '#c08a4a');
+    return;
+  }
+  if (theme === 'casa') {
+    // prateleira
+    rect(ctx, x, y, w, 3, '#c99a60');
+    rect(ctx, x, y + 3, w, 1, '#7a4e26');
+    rect(ctx, x + 2, y + 4, 2, 4, '#5a5a5a');
+    rect(ctx, x + w - 4, y + 4, 2, 4, '#5a5a5a');
     return;
   }
   // planalto: degrau de mármore

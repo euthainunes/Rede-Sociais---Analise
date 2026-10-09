@@ -41,7 +41,7 @@ const WALK_LEGS = [0, 18, [
 const SMILE = [3, 8, ['SSKSSSSKSS', '.SSKKKKSS.']];
 const COMMON = { K: '#1a1a1a', W: '#ffffff', S: '#e3a982', O: '#c48862' };
 
-function make(id, pal, patches, { bodyRows = BASE } = {}) {
+export function make(id, pal, patches, { bodyRows = BASE } = {}) {
   const palette = { ...COMMON, ...pal };
   const base = patch(bodyRows, patches);
   return {

@@ -54,3 +54,17 @@ export const NOVO = make('novo', { H: '#cabelo', C: '#camisa', A: '#gola', P: '#
   [x, y, ['fileira', 'de', 'pixels']], // acessórios (remendos sobre o corpo-base)
 ]);
 ```
+
+## Missão Patriota (v2)
+
+Arquivos em `src/art/missao/`: `characters.js` (Patrício, 01, Capitão na domiciliar, Tio Sam, Checador, Fiscal, Careca do Mal, Cachorro), `items.js`, `backgrounds.js` (quartel, rodovia, fábrica de chocolate, porto, domiciliar, esplanada), `hud.js` (Fé + 72h), `scenes.js` e `sheet.js`. Prévia ao vivo: `/preview/missao.html`.
+
+| | |
+|---|---|
+| ![Título](missao/title.png) | ![Mapa](missao/mapa.png) |
+| ![Missão](missao/missao.png) | ![Fase 1](missao/fase1.png) |
+| ![Fase 2](missao/fase2.png) | ![Fase 3](missao/fase3.png) |
+| ![Fase 4](missao/fase4.png) | ![Fase 5](missao/fase5.png) |
+| ![Fase 6](missao/fase6.png) | ![Fase 7](missao/fase7.png) |
+| ![Checagem](missao/checagem.png) | ![Final](missao/final.png) |
+| ![Game over](missao/gameOver.png) | ![Folha](missao/sheet.png) |

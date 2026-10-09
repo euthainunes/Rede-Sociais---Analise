@@ -1,6 +1,7 @@
 # BR-WAR v2 — "Missão Patriota" (proposta de redesenho)
 
-> Status: **proposta para validação** (9/out/2026, entre o 1º e o 2º turno).
+> Status: **direção aprovada: versão misturada** (9/out/2026, entre o 1º e o 2º turno). O Patrício e a Missão Patriota entram no jogo, e todo o elenco, os cenários e as piadas da v1 continuam (Tio do Zap, Militante, Sindicalista, Influencer, Centrão, Grupo da Família, Planalto).
+> Prévias de arte: [`docs/arte/missao/`](arte/missao/) · ao vivo em `/preview/missao.html`.
 > Referência de tom: *Super Flávio World*, jogo satírico independente que usa a estética de Super Mario World e mostra a fonte jornalística ao fim de cada fase.
 
 ---
@@ -66,6 +67,23 @@ O jogador aperta "CONFIRMA" na urna gigante e a tela se divide em duas:
 Os dois finais são mostrados juntos, **lado a lado**. A piada é que a opinião do Patrício sobre as urnas depende só do resultado.
 
 ---
+
+## 4.1 Estrutura de cada fase (aprendida com o Super Flávio World)
+
+1. **Mapa até Brasília**, com 7 pontos numerados, o Patrício andando entre eles e a Careca do Mal escondida numa nuvem.
+2. **Cartão de missão ("Áudio do 01")**: um texto curto com o objetivo e a **medida própria da fase**.
+3. **Fase**: o objetivo é a piada, e não só "chegar ao fim".
+4. **Checagem**: FATO / MEME / PIADA, com as fontes e os pendrives vazios.
+
+| Fase | Objetivo | Medida no HUD |
+|---|---|---|
+| 1. Acampamento do Quartel | Entregar 5 marmitas e chegar ao portão | FALTAM 72H (nunca acaba) |
+| 2. Rodovia do Caminhão | Pular de caminhão em caminhão; B agarra o para-brisa | FORÇA NO BRAÇO |
+| 3. A Fábrica de Chocolate | Depositar tudo em espécie sem o Fiscal ver | DEPÓSITOS 0/1512 |
+| 4. Missão Tio Sam | Levar café e laranja ao navio com peso +50% | TARIFA +50% |
+| 5. Grupo da Família | Repassar 10 correntes antes do Checador | ALCANCE 0/10 |
+| 6. Domiciliar 2.0 | Levar o ferro de solda sem disparar os sensores | CALOR |
+| 7. 25 de Outubro | Atravessar a Esplanada e apertar CONFIRMA | CONFIRMA |
 
 ## 5. Banco de frases (exemplos)
 
