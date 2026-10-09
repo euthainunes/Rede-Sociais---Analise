@@ -89,6 +89,8 @@ export interface DataSource {
   listOffers(variantIds: string[]): Promise<OfferRow[]>;
   getSeries(variantIds: string[]): Promise<Map<string, DailyPrice[]>>;
   listContent(filter?: { type?: ContentRow["type"]; productSlug?: string }): Promise<ContentRow[]>;
+  /** Novo endereço de uma página que mudou de endereço (301), ou null. */
+  findRedirect(path: string): Promise<string | null>;
   recordClick(click: ClickRecord): Promise<void>;
   recordEvents(events: IncomingEvent[], ctx: { anonId: string | null; sessionId?: string | null; ts: Date }): Promise<void>;
   /** Abre ou estende a sessão do visitante (só com consentimento). Devolve o id da sessão, ou null sem banco. */
@@ -150,6 +152,7 @@ export function createDemoSource(onClick?: (c: ClickRecord) => void): DataSource
       demo.contents
         .filter((c) => (!filter?.type || c.type === filter.type) && (!filter?.productSlug || c.productSlugs.includes(filter.productSlug)))
         .map((c) => ({ ...c, intro: c.intro ?? null, picks: c.picks ?? [] })),
+    findRedirect: async () => null,
     recordClick: async (c) => {
       onClick?.(c);
     },
@@ -217,7 +220,8 @@ export function createPgSource(sql: Sql, opts: { today?: () => string } = {}): D
     },
     listContent: async (filter) => {
       const rows = await sql`
-        SELECT c.id, c.type, c.url_path AS path, c.title, c.body, c.evidence_level, a.name AS author, c.published_at, c.updated_at,
+        SELECT c.id, c.type, c.url_path AS path, c.live->>'title' AS title, c.live->'body' AS body, c.evidence_level, a.name AS author,
+               c.published_at, c.live_at AS updated_at,
                cat.slug AS category,
                COALESCE(array_agg(p.slug ORDER BY cp.position) FILTER (WHERE p.slug IS NOT NULL), '{}') AS product_slugs
         FROM editorial.content c
@@ -225,8 +229,8 @@ export function createPgSource(sql: Sql, opts: { today?: () => string } = {}): D
         LEFT JOIN editorial.content_product cp ON cp.content_id = c.id
         LEFT JOIN catalog.product p ON p.id = cp.product_id
         LEFT JOIN catalog.category cat ON cat.id = c.category_id
-        WHERE c.status = 'published' AND c.type IN ('review','best_list','guide')
-          AND ${filter?.type ? sql`COALESCE(c.body->>'kind', c.type) = ${filter.type}` : sql`true`}
+        WHERE c.live IS NOT NULL AND c.type IN ('review','best_list','guide')
+          AND ${filter?.type ? sql`COALESCE(c.live->'body'->>'kind', c.type) = ${filter.type}` : sql`true`}
         GROUP BY c.id, a.name, cat.slug`;
       return rows
         .map((r) => ({
@@ -236,6 +240,10 @@ export function createPgSource(sql: Sql, opts: { today?: () => string } = {}): D
           intro: r.body?.intro ?? null, sections: r.body?.sections ?? [], picks: r.body?.picks ?? [],
         }))
         .filter((c) => !filter?.productSlug || c.productSlugs.includes(filter.productSlug));
+    },
+    findRedirect: async (path) => {
+      const [r] = await sql<{ to_path: string }[]>`SELECT to_path FROM editorial.redirect WHERE from_path = ${path}`;
+      return r?.to_path ?? null;
     },
     recordClick: async (c) => {
       await sql`

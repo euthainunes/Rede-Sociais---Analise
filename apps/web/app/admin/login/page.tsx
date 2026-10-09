@@ -1,13 +1,16 @@
+import { redirect } from "next/navigation";
 import { brand } from "@veredito/brand";
 import { loginAction } from "../actions";
 import { Flash } from "../Flash";
 import { LogoMark } from "@/components/Icon";
-import { adminSql } from "@/lib/admin";
+import { SubmitButton } from "@/components/SubmitButton";
+import { adminSql, currentStaff } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ erro?: string; ok?: string }> }) {
   const sp = await searchParams;
+  if (await currentStaff()) redirect("/admin");
   return (
     <main className="admin-login">
       <p className="logo"><LogoMark />{brand.name}</p>
@@ -20,7 +23,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           <label>E-mail<input type="email" name="email" required autoComplete="username" /></label>
           <label>Senha<input type="password" name="password" required autoComplete="current-password" minLength={12} /></label>
           <label>Código do autenticador (2FA)<input type="text" name="code" required inputMode="numeric" pattern="\d{6}" autoComplete="one-time-code" maxLength={6} /></label>
-          <button className="btn btn-primary" type="submit">Entrar</button>
+          <SubmitButton pendingLabel="Entrando…">Entrar</SubmitButton>
         </form>
       )}
     </main>

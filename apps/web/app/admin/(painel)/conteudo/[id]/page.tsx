@@ -26,7 +26,13 @@ export default async function EditContent({ params, searchParams }: Props) {
         <span className="status">{STATUS_LABELS[status]}</span>
       </div>
       <Flash sp={await searchParams} />
-      {status === "published" && <p><Link href={c.url_path} target="_blank">Ver publicado ↗</Link></p>}
+      {c.live && (
+        <p className="small">
+          <Link href={c.url_path} target="_blank">Ver no site ↗</Link>
+          {status !== "published" && <> · No ar continua a versão publicada em {new Date(c.live_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}. As mudanças só aparecem no site quando forem publicadas.</>}
+        </p>
+      )}
+      {status === "archived" && c.published_at && <p className="small muted">Arquivado: fora do site. Para voltar, mova para Rascunho e publique de novo.</p>}
       {transitions.length > 0 && (
         <form action={transitionContentAction} className="row" style={{ marginBottom: 16 }}>
           <input type="hidden" name="id" value={c.id} />

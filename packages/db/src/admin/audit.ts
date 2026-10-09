@@ -8,12 +8,13 @@ export async function audit(
   action: string,
   entity: { type: string; id: string | null },
   change: { before?: unknown; after?: unknown } = {},
+  meta: { ipHash?: string | null } = {},
 ): Promise<void> {
   await sql`
-    INSERT INTO ops.audit_log (actor_id, actor_role, action, entity_type, entity_id, before, after)
+    INSERT INTO ops.audit_log (actor_id, actor_role, action, entity_type, entity_id, before, after, ip_hash)
     VALUES (${actor?.id ?? null}, ${actor?.role ?? "system"}, ${action}, ${entity.type}, ${entity.id},
             ${change.before === undefined ? null : sql.json(change.before as never)},
-            ${change.after === undefined ? null : sql.json(change.after as never)})`;
+            ${change.after === undefined ? null : sql.json(change.after as never)}, ${meta.ipHash ?? null})`;
 }
 
 export async function listAudit(sql: Sql, limit = 100) {

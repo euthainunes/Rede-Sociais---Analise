@@ -296,6 +296,16 @@ export class CatalogService {
     };
   }
 
+  /** Conteúdo publicado num endereço (guias e explicadores). */
+  async contentAt(path: string) {
+    return (await this.source.listContent()).find((c) => c.path === path) ?? null;
+  }
+
+  /** Endereço novo de uma página que mudou (produto renomeado etc.), para responder 301 em vez de 404. */
+  async redirectFor(path: string) {
+    return this.source.findRedirect(path);
+  }
+
   async listContent(type?: ContentRow["type"]) {
     return this.source.listContent(type ? { type } : undefined);
   }

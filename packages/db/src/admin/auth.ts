@@ -5,7 +5,7 @@
 import { randomUUID } from "node:crypto";
 import type { Sql } from "../client.ts";
 import { audit } from "./audit.ts";
-import { generateTotpSecret, hashPassword, newSessionToken, sha256, verifyPassword, verifyTotp } from "./crypto.ts";
+import { generateTotpSecret, hashPassword, matchTotpStep, newSessionToken, sha256, verifyPassword } from "./crypto.ts";
 import type { Role } from "./rbac.ts";
 
 export interface Staff {
@@ -18,6 +18,8 @@ export interface Staff {
 export const SESSION_HOURS = 8;
 const MAX_FAILED = 5;
 const LOCK_MINUTES = 15;
+/** Falhas da mesma rede (hash do IP) em 15 min antes de recusar novas tentativas, para qualquer e-mail. */
+const MAX_FAILED_PER_IP = 20;
 
 export async function createStaff(sql: Sql, input: { email: string; name: string; role: Role; password: string }) {
   const id = randomUUID();
@@ -29,33 +31,51 @@ export async function createStaff(sql: Sql, input: { email: string; name: string
   return { id, totpSecret };
 }
 
-export type LoginResult = { ok: true; token: string; staff: Staff } | { ok: false; reason: "invalid" | "locked" };
+export type LoginResult = { ok: true; token: string; staff: Staff } | { ok: false; reason: "invalid" | "locked" | "throttled" };
 
 export async function login(
   sql: Sql,
   input: { email: string; password: string; code: string; ipHash?: string | null; userAgentHash?: string | null },
   now = new Date(),
 ): Promise<LoginResult> {
-  const [u] = await sql<{ id: string; email: string; name: string; role: Role; password_hash: string; totp_secret: string; failed_attempts: number; locked_until: Date | null; active: boolean }[]>`
+  const ipHash = input.ipHash ?? null;
+  if (ipHash) {
+    const [row] = await sql<{ n: number }[]>`
+      SELECT count(*)::int AS n FROM ops.audit_log
+      WHERE ip_hash = ${ipHash} AND action IN ('staff.login_failed', 'staff.locked') AND ts > ${new Date(now.getTime() - LOCK_MINUTES * 60_000)}`;
+    if ((row?.n ?? 0) >= MAX_FAILED_PER_IP) return { ok: false, reason: "throttled" };
+  }
+  const [u] = await sql<{ id: string; email: string; name: string; role: Role; password_hash: string; totp_secret: string; totp_last_step: string | null; failed_attempts: number; locked_until: Date | null; active: boolean }[]>`
     SELECT * FROM ops.staff_user WHERE email = ${input.email.trim()}`;
   // Mesmo custo de tempo com e sem usuário, para não revelar quais e-mails existem.
   const passwordOk = verifyPassword(input.password, u?.password_hash ?? "scrypt$16384$8$1$AAAAAAAAAAAAAAAAAAAAAA==$AAAA");
-  if (!u || !u.active) return { ok: false, reason: "invalid" };
+  if (!u || !u.active) {
+    await audit(sql, null, "staff.login_failed", { type: "staff_user", id: null }, {}, { ipHash });
+    return { ok: false, reason: "invalid" };
+  }
   if (u.locked_until && u.locked_until > now) return { ok: false, reason: "locked" };
-  if (!passwordOk || !verifyTotp(u.totp_secret, input.code.trim(), now.getTime())) {
+  const step = passwordOk ? matchTotpStep(u.totp_secret, input.code.trim(), now.getTime()) : null;
+  if (step == null) {
     const failed = u.failed_attempts + 1;
     const lock = failed >= MAX_FAILED ? new Date(now.getTime() + LOCK_MINUTES * 60_000) : null;
     await sql`UPDATE ops.staff_user SET failed_attempts = ${lock ? 0 : failed}, locked_until = ${lock} WHERE id = ${u.id}`;
-    await audit(sql, null, lock ? "staff.locked" : "staff.login_failed", { type: "staff_user", id: u.id });
+    await audit(sql, null, lock ? "staff.locked" : "staff.login_failed", { type: "staff_user", id: u.id }, {}, { ipHash });
     return { ok: false, reason: lock ? "locked" : "invalid" };
   }
+  // Cada código vale uma vez: só aceita um passo posterior ao último usado (atômico contra envios simultâneos).
+  const [accepted] = await sql`
+    UPDATE ops.staff_user SET failed_attempts = 0, locked_until = NULL, last_login_at = ${now}, totp_last_step = ${step}
+    WHERE id = ${u.id} AND (totp_last_step IS NULL OR totp_last_step < ${step}) RETURNING id`;
+  if (!accepted) {
+    await audit(sql, null, "staff.totp_reused", { type: "staff_user", id: u.id }, {}, { ipHash });
+    return { ok: false, reason: "invalid" };
+  }
   const token = newSessionToken();
-  await sql`UPDATE ops.staff_user SET failed_attempts = 0, locked_until = NULL, last_login_at = ${now} WHERE id = ${u.id}`;
   await sql`
     INSERT INTO ops.staff_session (token_hash, user_id, expires_at, ip_hash, user_agent_hash)
     VALUES (${sha256(token)}, ${u.id}, ${new Date(now.getTime() + SESSION_HOURS * 3_600_000)}, ${input.ipHash ?? null}, ${input.userAgentHash ?? null})`;
   const staff: Staff = { id: u.id, email: u.email, name: u.name, role: u.role };
-  await audit(sql, staff, "staff.login", { type: "staff_user", id: u.id });
+  await audit(sql, staff, "staff.login", { type: "staff_user", id: u.id }, {}, { ipHash });
   return { ok: true, token, staff };
 }
 

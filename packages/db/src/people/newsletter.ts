@@ -65,9 +65,10 @@ export async function buildEditionDraft(sql: Sql, staff: Staff | null, now = new
     url: utm(`${d.product.url}?v=${d.variant.slug}#ofertas`, slug),
   }));
   const fresh = await sql<{ title: string; url_path: string; type: string; updated_at: Date; published_at: Date }[]>`
-    SELECT title, url_path, coalesce(body->>'kind', type) AS type, updated_at, published_at FROM editorial.content
-    WHERE status = 'published' AND greatest(published_at, updated_at) > ${new Date(now.getTime() - 14 * 86_400_000)}
-    ORDER BY greatest(published_at, updated_at) DESC LIMIT 3`;
+    SELECT live->>'title' AS title, url_path, coalesce(live->'body'->>'kind', type) AS type, live_at AS updated_at, published_at
+    FROM editorial.content
+    WHERE live IS NOT NULL AND greatest(published_at, live_at) > ${new Date(now.getTime() - 14 * 86_400_000)}
+    ORDER BY greatest(published_at, live_at) DESC LIMIT 3`;
   for (const c of fresh) {
     const isNew = c.published_at && now.getTime() - c.published_at.getTime() < 14 * 86_400_000;
     items.push({ kind: "content", include: true, title: c.title, subtitle: isNew ? "Novo no site" : "Atualizado com preços e notas recentes", url: utm(c.url_path, slug) });

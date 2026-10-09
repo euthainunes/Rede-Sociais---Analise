@@ -7,6 +7,7 @@ import { createPgSource } from "../source.ts";
 import {
   addVariant, createStaff, decideMatch, getSession, importFeed, listAudit, listMatchQueue, listOpenAlerts, login, logout,
   refreshInternalAlerts, saveContent, saveProduct, totp, transitionContent, ValidationError, ForbiddenError, type Staff,
+  matchTotpStep,
 } from "./index.ts";
 
 const url = process.env.TEST_DATABASE_URL;
@@ -134,5 +135,65 @@ describe.skipIf(!url)("admin (Postgres)", () => {
     expect(alerts.some((a) => a.kind === "no_offer" && (a.details as { name: string }).name === `Zeta Phone ${tag}`)).toBe(false);
     const log = await listAudit(sql, 50);
     expect(log.some((l) => l.action === "offers.import")).toBe(true);
+  });
+  it("accepts each 2FA code once and throttles a network after repeated failures", async () => {
+    const email = `otp-${tag}@ex.com`;
+    const { totpSecret } = await createStaff(sql, { email, name: "OTP", role: "leitor", password: PASSWORD });
+    const code = totp(totpSecret);
+    expect(matchTotpStep(totpSecret, code)).not.toBeNull();
+    expect((await login(sql, { email, password: PASSWORD, code })).ok).toBe(true);
+    expect(await login(sql, { email, password: PASSWORD, code })).toEqual({ ok: false, reason: "invalid" });
+
+    const ipHash = `ip-${tag}`;
+    for (let i = 0; i < 20; i++) await login(sql, { email: `ninguem-${i}-${tag}@ex.com`, password: "errada-errada-errada", code: "123456", ipHash });
+    const next = await login(sql, { email, password: PASSWORD, code: totp(totpSecret, Date.now() + 30_000), ipHash });
+    expect(next).toEqual({ ok: false, reason: "throttled" });
+  });
+
+  it("keeps published content on the site while a new version is edited, reviewed or flagged", async () => {
+    const svc = () => new CatalogService(createPgSource(sql));
+    const live = async (path: string) => (await svc().listContent()).find((c) => c.path === path);
+    const [r] = await sql<{ id: string; url_path: string }[]>`SELECT id, url_path FROM editorial.content WHERE title = ${`Review Zeta ${tag}`}`;
+    // A edição do teste anterior está em revisão; o site continua com o texto publicado.
+    expect((await live(r!.url_path))?.sections[0]?.text).toBe("Texto de teste da review.");
+    await transitionContent(sql, admin, r!.id, "approved");
+    await transitionContent(sql, admin, r!.id, "published");
+    expect((await live(r!.url_path))?.sections[0]?.text).toBe("Texto revisado.");
+    // Ciclo de revisão vencido não tira do ar.
+    await transitionContent(sql, admin, r!.id, "needs_update");
+    expect(await live(r!.url_path)).toBeTruthy();
+    // Arquivar tira do ar e remove do índice da IA.
+    const removed: string[] = [];
+    await transitionContent(sql, admin, r!.id, "archived", { onUnpublished: async (x) => void removed.push(x) });
+    expect(await live(r!.url_path)).toBeUndefined();
+    expect(removed).toEqual([r!.id]);
+
+    // Guia publicado mantém o endereço mesmo com título novo; o tipo não muda mais.
+    const base = { kind: "guide" as const, category: "celulares", productSlugs: [], evidenceLevel: null, intro: "Introdução.", sections: [{ heading: "Parte", text: "Texto." }] };
+    const g = await saveContent(sql, admin, { ...base, title: `Guia original ${tag}` });
+    for (const to of ["in_review", "approved", "published"] as const) await transitionContent(sql, admin, g, to);
+    await saveContent(sql, admin, { ...base, id: g, title: `Guia renomeado ${tag}` });
+    const [after] = await sql<{ url_path: string }[]>`SELECT url_path FROM editorial.content WHERE id = ${g}`;
+    expect(after!.url_path).toBe(`/guias/guia-original-${tag}`);
+    expect((await svc().contentAt(after!.url_path))?.title).toBe(`Guia original ${tag}`);
+    await expect(saveContent(sql, admin, { ...base, id: g, kind: "review", title: "x de review" })).rejects.toBeInstanceOf(ValidationError);
+  });
+
+  it("redirects old product addresses without chains or loops", async () => {
+    const [p] = await sql<{ id: string }[]>`SELECT id FROM catalog.product WHERE slug = ${productSlug}`;
+    const save = (slug: string) => saveProduct(sql, admin, {
+      id: p!.id, category: "celulares", brand: `Zeta ${tag}`, name: `Zeta Phone ${tag}`, slug, summary: "Um celular de teste com bateria grande e preço baixo.",
+      editorial: { forWho: [], notForWho: [], pros: [], cons: [] },
+      specs: { battery_mah: 6000, ram_gb: 8, storage_gb: 256, os: "android", nfc: true, five_g: true, cpu_benchmark: 3000 },
+      publishStatus: "published", specSource: { kind: "manufacturer" },
+    });
+    const svc = new CatalogService(createPgSource(sql));
+    await save(`${productSlug}-b`);
+    await save(`${productSlug}-c`);
+    expect(await svc.redirectFor(`/celulares/${productSlug}`)).toBe(`/celulares/${productSlug}-c`);
+    expect(await svc.redirectFor(`/celulares/${productSlug}-b`)).toBe(`/celulares/${productSlug}-c`);
+    await save(productSlug);
+    expect(await svc.redirectFor(`/celulares/${productSlug}`)).toBeNull();
+    expect(await svc.redirectFor(`/celulares/${productSlug}-c`)).toBe(`/celulares/${productSlug}`);
   });
 });
