@@ -46,6 +46,7 @@ export async function retrieve(
     const cur = fused.get(r.chunk.id) ?? { chunk: r.chunk, score: 0, ranks: {} };
     cur.score += 1 / (rrfK + i + 1);
     cur.ranks.vector = i + 1;
+    cur.similarity = r.score;
     fused.set(r.chunk.id, cur);
   });
   kw.forEach((r, i) => {

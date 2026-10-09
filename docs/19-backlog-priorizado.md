@@ -125,6 +125,6 @@ Personalização · Google Ads · Pinterest · Merchant Center (se elegível) ·
 | 6.1–6.3 Newsletter, alerta de preço, conta e direitos LGPD | ✅ inclui a edição semanal (rascunho automático, revisão e envio pelo painel) |
 | 6.4 Alertas completos | ✅ preço-alvo, queda, bom preço (volta ao estoque no backend) |
 | 6.5 Webhooks para CRM | ✅ eventos de pessoas assinados (HMAC), fila com retentativas, painel com teste e reenvio |
-| 7.1–7.5 IA (consultor, RAG, busca) | ✅ consultor e RAG; falta a busca semântica na página de busca |
+| 7.1–7.5 IA (consultor, RAG, busca) | ✅ consultor, RAG e busca semântica (guias e análises com o trecho que responde; produtos citados sobem quando a busca não tem critérios) |
 
-Próximos itens: Lighthouse CI (0.5) e busca semântica na página de busca (7.5).
+Próximos itens: Lighthouse CI (0.5).

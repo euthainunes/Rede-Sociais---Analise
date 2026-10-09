@@ -149,3 +149,7 @@ legend { font-weight: 700; padding: 0 var(--s2); }
 textarea { font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); color: var(--ink); width: 100%; }
 input[type="password"], input[type="date"], input[type="url"], input[type="search"].plain { font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); color: var(--ink); }
 .status { font-size: .8rem; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: var(--bg-soft); }
+
+/* Busca: guias e análises relacionados */
+.search-hits { list-style: none; padding: 0; margin: 8px 0 24px; display: grid; gap: 14px; }
+.search-hits li p { margin: 4px 0 0; color: var(--ink-soft); }

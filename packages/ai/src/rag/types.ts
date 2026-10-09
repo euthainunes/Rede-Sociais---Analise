@@ -52,6 +52,8 @@ export interface ScoredChunk {
   score: number;
   /** Posição em cada lista antes da fusão (diagnóstico). */
   ranks: { vector?: number; keyword?: number };
+  /** Similaridade de cosseno com a consulta, quando o trecho veio da busca vetorial. */
+  similarity?: number;
 }
 
 /** Fato verificável com proveniência (camada 1). */

@@ -5,7 +5,9 @@ import {
   createLlmClient,
   indexDocument,
   runAdvisor,
+  searchKnowledge,
   type AdvisorInput,
+  type KnowledgeHit,
   type KnowledgeStore,
 } from "@veredito/ai";
 import { categories } from "@veredito/core";
@@ -35,3 +37,14 @@ export async function advise(input: AdvisorInput) {
 }
 
 export const advisorMode = () => (llm ? "llm" : "template");
+
+/** Guias e análises relevantes para a busca. Falha de índice não derruba a página: volta lista vazia. */
+export async function searchContent(q: string, category: string | null): Promise<KnowledgeHit[]> {
+  if (!q.trim()) return [];
+  try {
+    return await searchKnowledge(q, { embedder, store: await store() }, { k: 4, filter: category ? { category } : undefined });
+  } catch (e) {
+    console.error("search_content_failed", e instanceof Error ? e.message : e);
+    return [];
+  }
+}
