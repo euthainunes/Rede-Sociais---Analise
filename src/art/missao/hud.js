@@ -30,6 +30,8 @@ export function drawHUDMissao(ctx, W, s) {
   roundRect(ctx, W / 2 - 52, 20, 104, 10, '#1a0a0a');
   text(ctx, `FALTAM ${hh}:${mm}:${ss}`, W / 2, 22, { color: '#ff4040', align: 'center' });
 
+  if (s.objective) text(ctx, s.objective, W / 2, 33, { color: '#ffffff', align: 'center', shadow: UI.ink, outline: true });
+
   // munição de Zap, votos e provas
   const rx = W - 80;
   roundRect(ctx, rx, 4, 77, 23, UI.panel);

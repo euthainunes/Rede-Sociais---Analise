@@ -194,7 +194,7 @@ export function renderGame(ctx, g) {
 
 function drawTouch(ctx) {
   ctx.globalAlpha = 0.45;
-  const labels = { left: '◀', right: '▶', jump: 'PULO', pause: 'II' };
+  const labels = { left: '◀', right: '▶', jump: 'PULO', pause: 'II', throw: 'JOGA' };
   for (const b of TOUCH_BUTTONS) {
     roundRect(ctx, b.x, b.y, b.w, b.h, '#ffffff', '#1a1a1a');
     text(ctx, labels[b.action], b.x + b.w / 2, b.y + b.h / 2 - 2, { color: UI.ink, align: 'center' });

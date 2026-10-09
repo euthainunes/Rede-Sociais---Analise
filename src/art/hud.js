@@ -82,8 +82,7 @@ export function drawFloat(ctx, x, y, str, color = UI.gold) {
 }
 
 /** Faixa de plantão no topo, abaixo do HUD. */
-export function drawPlantao(ctx, W, label, str) {
-  const y = 34;
+export function drawPlantao(ctx, W, label, str, y = 34) {
   rect(ctx, 0, y, W, 13, '#c8202f');
   rect(ctx, 0, y, W, 1, '#ff5a6a');
   rect(ctx, 0, y + 12, W, 1, '#7a1018');

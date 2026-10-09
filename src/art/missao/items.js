@@ -135,3 +135,25 @@ GGGYYGGG
 GGYbbYGG
 GGGYYGGG
 GGGGGGGG`), { G: '#1f9e3a', Y: '#f5d000', b: '#2a5db0' });
+
+// Marmita de alumínio (coletável da fase 1).
+export const MARMITA = sprite('marmita', rows(`
+.KKKKKKK.
+KwwwwwwwK
+KgggggggK
+KwwwwwwwK
+KwwwwwwwK
+.KKKKKKK.`), { K: '#5a5a62', w: '#d8dce4', g: '#9aa0aa' });
+
+// Carregador: recarrega correntes de Zap.
+export const CARREGADOR = sprite('carregador', rows(`
+.KKKKKK.
+KGGGGGGK
+KGGYGGGK
+KGYYGGGK
+KGGYYGGK
+KGGGYGGK
+KGGGGGGK
+.KKKKKK.
+...KK...
+...KK...`), { K: '#1a1a1a', G: '#25d366', Y: '#ffffff' });

@@ -1,14 +1,17 @@
 // Converte os dados de uma fase (mapa em texto) em mapa de colisão + entidades.
+// Tiles de colisão: # B C =. Qualquer outro caractere (exceto '.') é uma entidade:
+// as conhecidas viram objetos prontos; as demais ficam em entities.points[caractere].
 
 import { TILE } from '../config/constants.js';
 import { TileMap } from './physics.js';
 import { createPromessa } from './platforms.js';
 
-const ENTITY_CHARS = new Set(['S', 'o', 'U', 'F', 'P']);
+const TILE_CHARS = new Set(['#', 'B', 'C', '=']);
 
 export function loadLevel(data) {
-  const rows = data.map.map((r) => r.padEnd(Math.max(...data.map.map((x) => x.length)), '.'));
-  const entities = { spawn: null, votes: [], checkpoints: [], promessas: [], finish: null };
+  const width = Math.max(...data.map.map((x) => x.length));
+  const rows = data.map.map((r) => r.padEnd(width, '.'));
+  const entities = { spawn: null, votes: [], checkpoints: [], promessas: [], finish: null, points: {} };
 
   rows.forEach((row, ty) => {
     let promessaStart = -1;
@@ -20,17 +23,19 @@ export function loadLevel(data) {
         entities.promessas.push(createPromessa(promessaStart * TILE, ty * TILE, (tx - promessaStart) * TILE));
         promessaStart = -1;
       }
+      if (ch === undefined || ch === '.' || TILE_CHARS.has(ch)) continue;
       const x = tx * TILE;
       const y = ty * TILE;
       if (ch === 'S') entities.spawn = { x: x + 3, y: y + TILE - 22 };
-      if (ch === 'o') entities.votes.push({ id: `v${tx}_${ty}`, x: x + 4, y: y + 4, w: 8, h: 8, taken: false });
-      if (ch === 'U') entities.checkpoints.push({ id: `cp${tx}`, x, y: y - 16, w: 16, h: 32, active: false, spawnX: x + 3, spawnY: y + TILE - 22 });
-      if (ch === 'F') entities.finish = { x, y: y - 32, w: 48, h: 48 };
+      else if (ch === 'o') entities.votes.push({ id: `v${tx}_${ty}`, x: x + 4, y: y + 4, w: 8, h: 8, taken: false });
+      else if (ch === 'U') entities.checkpoints.push({ id: `cp${tx}`, x, y: y - 16, w: 16, h: 32, active: false, spawnX: x + 3, spawnY: y + TILE - 22 });
+      else if (ch === 'F') entities.finish = { x, y: y - 32, w: 48, h: 48 };
+      else if (ch !== 'P') (entities.points[ch] ??= []).push({ tx, ty, x, y });
     }
   });
 
-  // Entidades não fazem parte do mapa de colisão
-  const collisionRows = rows.map((r) => [...r].map((c) => (ENTITY_CHARS.has(c) ? '.' : c)).join(''));
+  // Só os tiles de colisão ficam no mapa
+  const collisionRows = rows.map((r) => [...r].map((c) => (TILE_CHARS.has(c) ? c : '.')).join(''));
   const map = new TileMap(collisionRows);
 
   if (!entities.spawn) throw new Error(`${data.id}: mapa sem ponto de início 'S'`);

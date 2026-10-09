@@ -9,6 +9,7 @@ const KEYMAP = {
   ArrowUp: 'jump', KeyW: 'jump', Space: 'jump', KeyZ: 'jump',
   Escape: 'pause', KeyP: 'pause',
   Enter: 'confirm', KeyR: 'restart', KeyT: 'swap', Backquote: 'debug', F2: 'debug',
+  KeyX: 'throw', KeyJ: 'throw',
 };
 
 // Botões de toque em coordenadas lógicas (mesmo layout de hud.drawTouchControls).
@@ -16,6 +17,7 @@ export const TOUCH_BUTTONS = [
   { action: 'left', x: 8, y: VIEW_H - 34, w: 26, h: 26 },
   { action: 'right', x: 40, y: VIEW_H - 34, w: 26, h: 26 },
   { action: 'jump', x: VIEW_W - 38, y: VIEW_H - 38, w: 30, h: 30 },
+  { action: 'throw', x: VIEW_W - 72, y: VIEW_H - 32, w: 28, h: 26 },
   { action: 'pause', x: VIEW_W / 2 - 10, y: VIEW_H - 22, w: 20, h: 18 },
 ];
 
@@ -87,6 +89,7 @@ export class Input {
       restartPressed: pressed.has('restart'),
       swapPressed: pressed.has('swap'),
       debugPressed: pressed.has('debug'),
+      throwPressed: pressed.has('throw'),
     };
   }
 }
