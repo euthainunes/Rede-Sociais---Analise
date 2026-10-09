@@ -1,5 +1,7 @@
 # BR-WAR v2 — "Missão Patriota" (proposta de redesenho)
 
+> ⚠️ **Substituído pela v3:** [`BR-WAR-v3-liberta-o-mito.md`](BR-WAR-v3-liberta-o-mito.md). Esta versão continua valendo para arte, HUD e mecânicas transversais.
+
 > Status: **direção aprovada: versão misturada** (9/out/2026, entre o 1º e o 2º turno). O Patrício e a Missão Patriota entram no jogo, e todo o elenco, os cenários e as piadas da v1 continuam (Tio do Zap, Militante, Sindicalista, Influencer, Centrão, Grupo da Família, Planalto).
 > Prévias de arte: [`docs/arte/missao/`](arte/missao/) · ao vivo em `/preview/missao.html`.
 > Referência de tom: *Super Flávio World*, jogo satírico independente que usa a estética de Super Mario World e mostra a fonte jornalística ao fim de cada fase.
