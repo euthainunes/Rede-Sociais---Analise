@@ -43,6 +43,8 @@ const game = new MissaoGame(canvas, {
 // ?fase=2 abre direto uma fase (para testes)
 const fase = Number(params.get('fase'));
 if (fase >= 1 && fase <= LEVELS.length) { game.levelIndex = fase - 1; game.mapCursor = fase - 1; game.startLevel(); }
+// #teste (ou ?teste) libera todas as fases já prontas no mapa, sem precisar zerar as anteriores
+if (location.hash === '#teste' || params.has('teste')) game.unlocked = LEVELS.length - 1;
 game.debug = params.has('debug');
 game.run(renderMissao, drawRotate);
 window.brwar = game;
