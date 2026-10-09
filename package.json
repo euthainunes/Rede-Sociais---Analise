@@ -1,0 +1,11 @@
+{
+  "name": "br-war",
+  "version": "0.1.0",
+  "private": true,
+  "description": "BR-WAR — jogo de plataforma 2D satírico sobre a política brasileira",
+  "type": "module",
+  "scripts": {
+    "start": "python3 -m http.server 8000",
+    "test": "node --test tests/*.test.js"
+  }
+}

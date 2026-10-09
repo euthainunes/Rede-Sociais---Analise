@@ -806,7 +806,9 @@ classe MessageSystem:
 | Manutenção e custo | Mais código próprio para manter | **Pouco código de infraestrutura, comunidade grande, gratuito** | Gratuito; projeto binário + editor |
 | Testes de regras puras | Fácil | **Fácil (core em JS puro + Vitest)** | Possível, menos comum |
 
-### 10.2 Recomendação: **Phaser 3 + JavaScript (ES Modules) + Vite**
+> **Atualização (implementação E0/E1):** a arte acabou sendo toda desenhada em canvas por código (`src/art/`), e a física do jogador já precisava ser escrita à mão (§9.6). Com isso, o Phaser deixou de trazer ganho suficiente e o projeto segue com **JavaScript puro (ES Modules) + Canvas 2D**, **sem build e sem dependências**. A arquitetura (core puro, dados separados, máquina de estados) continua a mesma. O Phaser volta a ser opção se surgirem necessidades como mapas do Tiled, áudio complexo ou física avançada.
+
+### 10.2 Recomendação original: **Phaser 3 + JavaScript (ES Modules) + Vite**
 - **Motivo principal:** o MVP é um jogo de plataforma 2D para navegador e celular. O Phaser resolve justamente a infraestrutura chata (tilemap, colisão arcade, escala, toque, áudio) e deixa o esforço no design e no humor. O download é pequeno e a hospedagem é grátis em qualquer host estático.
 - **Por que não Canvas puro:** cerca de 30–40% do esforço do MVP iria para reinventar loader, tilemap e input de toque.
 - **Por que não Godot:** é excelente, mas o export web é pesado para um jogo que precisa abrir rápido a partir de um link compartilhado no celular. Godot passa a fazer sentido se o projeto migrar para lojas de app ou para um escopo bem maior.
