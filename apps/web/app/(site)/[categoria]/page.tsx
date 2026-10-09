@@ -71,6 +71,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
         </label>
         <button className="btn btn-primary btn-sm" type="submit">Aplicar</button>
       </form>
+      <h2 className="sr-only">Modelos</h2>
       <div className="grid" style={{ marginTop: 16 }}>
         {list.map((p) => <ProductCard key={p.id} p={p} />)}
       </div>

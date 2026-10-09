@@ -153,3 +153,6 @@ input[type="password"], input[type="date"], input[type="url"], input[type="searc
 /* Busca: guias e análises relacionados */
 .search-hits { list-style: none; padding: 0; margin: 8px 0 24px; display: grid; gap: 14px; }
 .search-hits li p { margin: 4px 0 0; color: var(--ink-soft); }
+
+/* Alvo de toque mínimo (WCAG 2.5.8): links empilhados em tabelas e listas densas */
+.tap { display: block; min-height: 24px; padding: 2px 0; line-height: 20px; }

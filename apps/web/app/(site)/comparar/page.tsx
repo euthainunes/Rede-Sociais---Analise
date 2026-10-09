@@ -50,8 +50,8 @@ export default async function ComparePage({ searchParams }: Props) {
                   <th scope="col">Produto</th>
                   {c.products.map((p) => (
                     <th scope="col" key={p.id}>
-                      <Link href={p.url}>{p.name}</Link><br />
-                      <Link className="small" href={href(slugs.filter((s) => s !== p.slug))} rel="nofollow">remover</Link>
+                      <Link className="tap" href={p.url}>{p.name}</Link>
+                      <Link className="tap small" href={href(slugs.filter((s) => s !== p.slug))} rel="nofollow" aria-label={`Remover ${p.name} da comparação`}>remover</Link>
                     </th>
                   ))}
                 </tr>

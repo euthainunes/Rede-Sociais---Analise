@@ -105,6 +105,10 @@ Várias instâncias podem rodar juntas: cada job tem um *lease* no banco, que ex
 - **Dados mínimos:** só o identificador e o e-mail da pessoa. Na exclusão (LGPD), o CRM recebe o pedido com o e-mail; o que ainda não tinha saído é descartado e, depois da entrega, o e-mail some também da nossa fila.
 - **Rede:** mesma proteção contra SSRF dos feeds (só https e IP público). Para testar com um receptor local em desenvolvimento, `NET_ALLOW_PRIVATE=1` (ignorado com `NODE_ENV=production`).
 
+### Orçamentos de performance (Lighthouse CI)
+
+`pnpm build && pnpm lighthouse` mede 7 páginas (home, categoria, produto, comparador, guia, ofertas e busca) em celular emulado, 3 vezes cada, em modo demonstração. O CI falha se a mediana passar destes limites: performance ≥ 0,90; acessibilidade e boas práticas ≥ 0,95; LCP ≤ 2,5 s; CLS ≤ 0,1; TBT ≤ 200 ms; até 200 KB de JavaScript; nenhum script de terceiros antes do consentimento; nenhum erro no console; auditorias de SEO (título, descrição, canonical, links, imagens) todas aprovadas. Só `is-crawlable` fica de fora, porque os dados de demonstração são `noindex` de propósito. Os relatórios ficam em `.lighthouseci/reports` (e como artefato no CI). Hoje: performance 0,98, acessibilidade e boas práticas 1,00, LCP ~2,2 s, CLS 0.
+
 Variáveis de ambiente: [`.env.example`](./.env.example). Sem `ANTHROPIC_API_KEY`, o consultor funciona em modo template (a seleção de produtos é determinística; a IA só redige a explicação).
 
 ## Garantias implementadas

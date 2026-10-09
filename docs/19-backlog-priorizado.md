@@ -110,21 +110,21 @@ Personalização · Google Ads · Pinterest · Merchant Center (se elegível) ·
 
 | Item | Status |
 |---|---|
-| 0.1–0.6 Fundação (monorepo, schema, auth admin com 2FA, design tokens, seeds) | ✅ feito (Lighthouse CI ainda não) |
+| 0.1–0.6 Fundação (monorepo, schema, auth admin com 2FA, design tokens, seeds) | ✅ inclui Lighthouse CI com orçamentos em 7 páginas |
 | 1.1 CRUD de produto/variante/specs com proveniência | ✅ |
 | 1.2–1.3 Adaptadores e pipeline de ingestão | ✅ CSV manual + feeds agendados por URL (worker); APIs dos programas dependem de credenciais |
 | 1.4 Fila de matching | ✅ |
 | 1.5 Rollup diário | ✅ job `rollup-daily` a partir das observações |
 | 1.7–1.8 Anomalias, checagem de links e alertas internos | ✅ anomalia pausa a oferta; `check-links`; alertas automáticos |
-| 2.1–2.11 Experiência do consumidor | ✅ |
+| 2.1–2.11 Experiência do consumidor | ✅ exceto autocomplete na busca (2.6) |
 | 3.1–3.3 Notas, editor e workflow | ✅ editor por seções, sem editor visual |
 | 4.1–4.3 `/go`, eventos próprios, consentimento e GA4 | ✅ |
 | 4.4–4.5 Conversões e dashboard | ✅ importação CSV + postback assinado, comissões com histórico, receita por conteúdo/produto/canal/CTA/loja |
 | 4.7 Modelos de atribuição multi-toque | ✅ jornada por sessão (com consentimento); último, primeiro, linear e por posição por canal no painel Receita |
-| 5.1–5.5, 5.7 SEO/GEO | ✅ |
+| 5.1–5.5, 5.7 SEO/GEO | ✅ (5.6 OG images dinâmicas ⏳) |
 | 6.1–6.3 Newsletter, alerta de preço, conta e direitos LGPD | ✅ inclui a edição semanal (rascunho automático, revisão e envio pelo painel) |
 | 6.4 Alertas completos | ✅ preço-alvo, queda, bom preço (volta ao estoque no backend) |
 | 6.5 Webhooks para CRM | ✅ eventos de pessoas assinados (HMAC), fila com retentativas, painel com teste e reenvio |
 | 7.1–7.5 IA (consultor, RAG, busca) | ✅ consultor, RAG e busca semântica (guias e análises com o trecho que responde; produtos citados sobem quando a busca não tem critérios) |
 
-Próximos itens: Lighthouse CI (0.5).
+Ainda abertos no código: autocomplete da busca (parte do 2.6) e OG images dinâmicas (5.6). O restante depende de dados reais: credenciais dos programas de afiliados, catálogo real para calibrar as notas, conteúdo editorial (3.4) e provedor de embeddings em produção (`EMBEDDINGS_PROVIDER=voyage`).
