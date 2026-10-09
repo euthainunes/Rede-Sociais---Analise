@@ -16,6 +16,7 @@ import {
 import { addFeedSource, setFeedSourceActive } from "@veredito/db/jobs";
 import { resolveAlert } from "@veredito/db/admin";
 import { importConversions, type ConversionFormat } from "@veredito/db/commerce";
+import { buildEditionDraft, sendEdition, updateEdition } from "@veredito/db/people";
 import { ADMIN_COOKIE, adminSql, errorMessage, parseSections, requestFingerprint, requireStaff } from "@/lib/admin";
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
@@ -211,4 +212,43 @@ export async function importConversionsAction(form: FormData) {
     redirect(back("/admin/receita", "erro", errorMessage(e)));
   }
   redirect(back("/admin/receita", "ok", msg));
+}
+
+export async function buildNewsletterAction() {
+  const { staff, sql } = await requireStaff("content:write");
+  let r: { id: string; created: boolean };
+  try {
+    r = await buildEditionDraft(sql, staff);
+  } catch (e) {
+    redirect(back("/admin/newsletter", "erro", errorMessage(e)));
+  }
+  redirect(back(`/admin/newsletter?id=${r.id}`, "ok", r.created ? "Rascunho da semana montado. Revise antes de enviar." : "O rascunho desta semana já existia."));
+}
+
+export async function updateNewsletterAction(form: FormData) {
+  const { staff, sql } = await requireStaff("content:write");
+  const id = str(form, "id");
+  const count = Number(str(form, "count")) || 0;
+  try {
+    await updateEdition(sql, staff, id, {
+      subject: str(form, "subject"), intro: str(form, "intro"),
+      include: Array.from({ length: count }, (_, i) => form.get(`include.${i}`) === "on"),
+    });
+  } catch (e) {
+    redirect(back(`/admin/newsletter?id=${id}`, "erro", errorMessage(e)));
+  }
+  redirect(back(`/admin/newsletter?id=${id}`, "ok", "Edição salva."));
+}
+
+export async function sendNewsletterAction(form: FormData) {
+  const { staff, sql } = await requireStaff("content:publish");
+  const id = str(form, "id");
+  if (form.get("confirm") !== "on") redirect(back(`/admin/newsletter?id=${id}`, "erro", "Marque a confirmação antes de enviar."));
+  let n: number;
+  try {
+    n = (await sendEdition(sql, staff, id)).recipients;
+  } catch (e) {
+    redirect(back(`/admin/newsletter?id=${id}`, "erro", errorMessage(e)));
+  }
+  redirect(back(`/admin/newsletter?id=${id}`, "ok", `Edição enviada para a fila: ${n} inscritos confirmados.`));
 }

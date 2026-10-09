@@ -20,8 +20,17 @@ export function siteUrl(path: string): string {
 }
 
 /** Layout único: texto curto, um botão, rodapé com descadastro e aviso de privacidade. */
-export function renderEmail(opts: { title: string; paragraphs: string[]; cta?: { label: string; url: string }; unsubscribeUrl?: string; footerNote?: string }): { html: string; text: string } {
-  const p = opts.paragraphs.map((x) => `<p style="margin:0 0 14px">${esc(x)}</p>`).join("");
+export interface EmailItem {
+  title: string;
+  subtitle: string;
+  url: string;
+}
+
+export function renderEmail(opts: { title: string; paragraphs: string[]; items?: EmailItem[]; cta?: { label: string; url: string }; unsubscribeUrl?: string; footerNote?: string }): { html: string; text: string } {
+  const list = (opts.items ?? [])
+    .map((i) => `<tr><td style="padding:12px 0;border-top:1px solid #e2e5ea"><a href="${esc(i.url)}" style="color:#14161a;font-weight:700;text-decoration:none">${esc(i.title)}</a><br><span style="color:#545b66;font-size:14px">${esc(i.subtitle)}</span></td></tr>`)
+    .join("");
+  const p = opts.paragraphs.map((x) => `<p style="margin:0 0 14px">${esc(x)}</p>`).join("") + (list ? `<table role="presentation" width="100%" style="border-collapse:collapse;margin:8px 0 4px">${list}</table>` : "");
   const cta = opts.cta
     ? `<p style="margin:22px 0"><a href="${esc(opts.cta.url)}" style="background:${brand.colors.brand};color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:600">${esc(opts.cta.label)}</a></p>`
     : "";
@@ -34,16 +43,16 @@ export function renderEmail(opts: { title: string; paragraphs: string[]; cta?: {
 <div style="max-width:560px;margin:0 auto;padding:24px"><div style="background:#fff;border-radius:12px;padding:24px">
 <p style="font-weight:800;margin:0 0 16px">${esc(brand.name)}</p><h1 style="font-size:20px;margin:0 0 16px">${esc(opts.title)}</h1>${p}${cta}</div>
 <p style="font-size:12px;color:#667;margin:16px 4px">${foot}</p></div></body></html>`;
-  const text = [opts.title, "", ...opts.paragraphs, ...(opts.cta ? ["", `${opts.cta.label}: ${opts.cta.url}`] : []), "",
+  const text = [opts.title, "", ...opts.paragraphs, ...(opts.items ?? []).flatMap((i) => ["", `• ${i.title}`, `  ${i.subtitle}`, `  ${i.url}`]), ...(opts.cta ? ["", `${opts.cta.label}: ${opts.cta.url}`] : []), "",
     ...(opts.footerNote ? [opts.footerNote] : []), ...(opts.unsubscribeUrl ? [`Cancelar e-mails: ${opts.unsubscribeUrl}`] : [])].join("\n");
   return { html, text };
 }
 
-export async function enqueueEmail(sql: Sql, personId: string | null, kind: string, msg: EmailMessage): Promise<string> {
+export async function enqueueEmail(sql: Sql, personId: string | null, kind: string, msg: EmailMessage, editionId: string | null = null): Promise<string> {
   const id = randomUUID();
   await sql`
-    INSERT INTO ops.email_outbox (id, person_id, to_email, kind, subject, html, text_body, headers)
-    VALUES (${id}, ${personId}, ${msg.to}, ${kind}, ${msg.subject}, ${msg.html}, ${msg.text}, ${sql.json((msg.headers ?? {}) as never)})`;
+    INSERT INTO ops.email_outbox (id, person_id, to_email, kind, subject, html, text_body, headers, edition_id)
+    VALUES (${id}, ${personId}, ${msg.to}, ${kind}, ${msg.subject}, ${msg.html}, ${msg.text}, ${sql.json((msg.headers ?? {}) as never)}, ${editionId})`;
   return id;
 }
 

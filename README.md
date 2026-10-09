@@ -71,6 +71,7 @@ pnpm --filter @veredito/worker once check-links # um job específico
 | `flag-content-review` | 1 h | Conteúdo publicado com revisão vencida vai para "Atualização necessária" |
 | `refresh-alerts` | 30 min | Recalcula os alertas internos |
 | `evaluate-price-alerts` | 30 min | Avalia os alertas de preço dos usuários e enfileira os avisos |
+| `draft-newsletter` | 6 h (só às segundas) | Monta o rascunho da edição semanal; ninguém recebe nada até alguém revisar e enviar |
 | `send-emails` | 1 min | Envia a fila de e-mails, com retentativas |
 | `maintain-partitions` | diário | Cria as partições mensais de preços, eventos e cliques |
 
@@ -90,6 +91,7 @@ Várias instâncias podem rodar juntas: cada job tem um *lease* no banco, que ex
 - **O e-mail de alerta sempre aponta para a nossa página** (com UTM), nunca para o link de afiliado, porque vários programas proíbem isso.
 - **Fila de e-mails:** o site só enfileira; o worker envia a cada minuto pelo Resend (`EMAIL_PROVIDER=resend`), com até 5 tentativas. Em desenvolvimento (`console`), nada é enviado e o painel (Admin › E-mails) mostra os links para testar.
 - **Descadastro em um clique** (link no rodapé + cabeçalhos `List-Unsubscribe` / RFC 8058).
+- **Edição semanal (Admin › Newsletter):** toda segunda o worker monta o rascunho com as 5 ofertas de maior desconto real (contra a mediana de 90 dias) e o conteúdo novo ou atualizado nos últimos 14 dias. A equipe edita assunto, introdução e itens, vê a prévia e só editor-chefe ou administrador envia. Vai uma vez para cada inscrito confirmado, com o próprio link de descadastro; o banco impede envio duplicado.
 - **Minha conta (`/conta`):** link de acesso por e-mail (vale 2 h) para cancelar alertas, sair da newsletter, baixar os dados (JSON) ou excluí-los (LGPD).
 - **Proteções:** limite de pedidos por e-mail e por IP, campo-armadilha contra robôs, links assinados com `APP_SECRET` (obrigatório em produção).
 

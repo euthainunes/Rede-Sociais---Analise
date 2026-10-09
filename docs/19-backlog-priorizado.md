@@ -106,7 +106,7 @@ Personalização · Google Ads · Pinterest · Merchant Center (se elegível) ·
 | S5 | 2.3 comparador · 2.4 guias · 5.4–5.5 · 4.3 consentimento/GA4 · 2.9 |
 | S6 | 2.7 home · 2.8 ofertas · 1.6 adaptadores · 6.1–6.2 · 4.4–4.5 · hardening, testes de carga, lançamento |
 
-## Status de execução (atualizado em 08/10/2026)
+## Status de execução (atualizado em 09/10/2026)
 
 | Item | Status |
 |---|---|
@@ -122,9 +122,9 @@ Personalização · Google Ads · Pinterest · Merchant Center (se elegível) ·
 | 4.4–4.5 Conversões e dashboard | ✅ importação CSV + postback assinado, comissões com histórico, receita por conteúdo/produto/canal/CTA/loja |
 | 4.7 Modelos de atribuição multi-toque | 🟡 último clique feito; primeiro/linear/posição exigem jornada por sessão (cookie de analytics após consentimento) |
 | 5.1–5.5, 5.7 SEO/GEO | ✅ |
-| 6.1–6.3 Newsletter, alerta de preço, conta e direitos LGPD | ✅ |
+| 6.1–6.3 Newsletter, alerta de preço, conta e direitos LGPD | ✅ inclui a edição semanal (rascunho automático, revisão e envio pelo painel) |
 | 6.4 Alertas completos | ✅ preço-alvo, queda, bom preço (volta ao estoque no backend) |
 | 6.5 Webhooks para CRM | ⏳ |
 | 7.1–7.5 IA (consultor, RAG, busca) | ✅ consultor e RAG; falta a busca semântica na página de busca |
 
-Próximos itens: jornada por sessão para atribuição multi-toque, envio semanal da newsletter, webhooks de CRM (6.5) e Lighthouse CI.
+Próximos itens: jornada por sessão para atribuição multi-toque, webhooks de CRM (6.5) e Lighthouse CI.

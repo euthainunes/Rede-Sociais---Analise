@@ -63,7 +63,7 @@ export async function currentBestPrice(sql: Sql, productId: string, variantId: s
   return r ? { price: r.price, variantId: r.variant_id } : null;
 }
 
-function unsubscribeHeaders(personId: string) {
+export function unsubscribeHeaders(personId: string) {
   const token = signToken("unsubscribe", personId);
   // Link do rodapé abre a página de confirmação; o cabeçalho aponta para o endpoint de um clique (RFC 8058, POST).
   const url = siteUrl(`/descadastrar?t=${token}`);
