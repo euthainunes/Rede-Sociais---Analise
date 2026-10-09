@@ -16,9 +16,13 @@ export const MESSAGES_MISSAO = [
   ...any('gate', 'Faltam marmitas! Patriota com fome não faz intervenção.', 'O portão só abre com o povo alimentado.'),
   ...any('pendrive', 'PROVA DA FRAUDE! Depois eu abro.', 'Achei as provas! Estão guardadas. Bem guardadas.'),
   ...any('promessa', 'Promessa de intervenção: não pise duas vezes.'),
+  ...any('urna', 'Vazia? Então apagaram as provas. Isso prova tudo!', 'Nada?! Que fraude bem-feita.', 'Só tem voto aqui dentro. SUSPEITO.', '0 erros. Claramente manipulado.', 'O código secreto deve estar na próxima.', 'Vou mandar print pro Grupo.'),
+  ...any('fiscal', 'O fiscal me olhou feio. Censura!', 'Fiscal comunista!', 'Ele quer ver meu título de eleitor?!'),
+  ...any('objetivo', 'Ainda falta! O Grupo quer resultados.', 'Não posso voltar de mãos vazias pro Grupo.'),
 ];
 
 export const HEADLINES_MISSAO = {
   complete: ['O PORTÃO NÃO ABRIU, MAS A FÉ CONTINUA INTACTA', 'PATRIOTA ENTREGA MARMITAS E AGUARDA AS 72 HORAS (PELA 14ª VEZ)'],
+  urnas: ['PATRIOTA AUDITA 10 URNAS E CONCLUI: FRAUDE PERFEITA, SEM DEIXAR NENHUMA PROVA', 'SALA DO CÓDIGO-FONTE TINHA SÓ UM CAFEZINHO FRIO'],
   gameover: ['VOCÊ ACORDOU.'],
 };

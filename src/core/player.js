@@ -101,6 +101,7 @@ export function updatePlayer(p, input, dt, map, platforms = []) {
   const res = moveAndCollide(p, map, dt, platforms, { dropThrough });
   p.onGround = res.onGround;
   p.standingOn = res.standingOn;
+  if (res.ceilingTile) events.push({ type: 'ceiling', ...res.ceilingTile });
   if (res.onGround && !wasOnGround) events.push('land');
 
   // ---- estado de animação ----

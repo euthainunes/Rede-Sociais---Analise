@@ -90,6 +90,8 @@ export class Input {
       swapPressed: pressed.has('swap'),
       debugPressed: pressed.has('debug'),
       throwPressed: pressed.has('throw'),
+      leftPressed: pressed.has('left'),
+      rightPressed: pressed.has('right'),
     };
   }
 }

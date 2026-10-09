@@ -1,4 +1,4 @@
-// Missão Patriota — laço e regras da fase (Patrício, marmitas, Zap, Fé, 72h, pneu, Checagem).
+// Operação Liberta o Mito — laço e regras das fases (Patrício, objetivos, Zap, Fé, 72h, pneu, mapa, Checagem).
 
 import { VIEW_W, VIEW_H, STEP, TILE, jumpVelocity } from '../config/constants.js';
 import { PATRICIO_STATS, FE, SCORE } from '../data/missao/characters.js';
@@ -11,18 +11,17 @@ import { createEnemy, updateEnemy, convertEnemy, stunEnemy, isActive } from '../
 import { createZap, updateZap, ZAP } from '../core/zap.js';
 import { MessageSystem } from '../core/messages.js';
 import { StateMachine } from '../core/stateMachine.js';
-import { Input } from './input.js';
-import { prerenderLevel } from './render.js';
-import { renderMissao, drawRotate } from './missaoRender.js';
+import { NO_SFX } from './sfx.js';
 
 export const STATES = {
-  TITLE: { start: 'MISSION' },
-  MISSION: { go: 'PLAYING' },
+  TITLE: { start: 'MAP' },
+  MAP: { enter: 'MISSION', back: 'TITLE' },
+  MISSION: { go: 'PLAYING', back: 'MAP' },
   PLAYING: { pause: 'PAUSED', blur: 'PAUSED', die: 'DYING', awake: 'GAMEOVER', win: 'CHECAGEM' },
-  PAUSED: { resume: 'PLAYING', restart: 'MISSION' },
+  PAUSED: { resume: 'PLAYING', restart: 'MISSION', map: 'MAP' },
   DYING: { respawn: 'PLAYING', gameover: 'GAMEOVER' },
-  GAMEOVER: { retry: 'MISSION' },
-  CHECAGEM: { retry: 'MISSION' },
+  GAMEOVER: { retry: 'MISSION', map: 'MAP' },
+  CHECAGEM: { next: 'MAP', retry: 'MISSION' },
 };
 
 const SAVE_KEY = 'brwar.missao.v1';
@@ -32,7 +31,9 @@ const ENEMY_KINDS = {
   M: { kind: 'militante', speed: 32, convertible: true },
   N: { kind: 'sindicalista', speed: 26, convertible: true },
   K: { kind: 'checador', speed: 38, convertible: false },
+  G: { kind: 'fiscal', speed: 30, convertible: false },
 };
+const URNA_LABELS = ['VAZIA', 'SÓ VOTO', '0 ERROS', 'AUDITADA', 'NADA AQUI', 'TUDO CERTO?!'];
 
 function readSave() {
   try { return JSON.parse(localStorage.getItem(SAVE_KEY)) ?? {}; } catch { return {}; }
@@ -46,46 +47,56 @@ export function createRun(levelData) {
   const level = loadLevel(levelData);
   const P = level.entities.points;
   const at = (pt, extra = {}) => ({ x: pt.x, y: pt.y, w: 16, h: 16, ...extra });
+  const urnas = new Map();
+  level.map.rows.forEach((row, ty) => [...row].forEach((ch, tx) => ch === 'Q' && urnas.set(`${tx},${ty}`, { tx, ty, open: false, bump: 0 })));
   return {
     level,
     // área de coleta alta: pega a marmita mesmo passando por cima dela
     marmitas: (P.m ?? []).map((pt, i) => at(pt, { id: `m${i}`, x: pt.x + 1, y: pt.y - 24, w: 14, h: 40, drawX: pt.x + 3, drawY: pt.y + 8, taken: false })),
-    // área de entrega generosa: o acampado pega a marmita no ar, mesmo com o Patrício pulando por cima
+    // área de entrega generosa: o acampado pega a marmita no ar
     acampados: (P.a ?? []).map((pt, i) => at(pt, { id: `a${i}`, x: pt.x - 4, y: pt.y - 40, w: 24, h: 56, fed: false, timer: 0 })),
     pendrives: (P.p ?? []).map((pt, i) => at(pt, { id: `p${i}`, x: pt.x + 4, y: pt.y + 4, w: 8, h: 8, taken: false })),
     chargers: (P.z ?? []).map((pt, i) => at(pt, { id: `z${i}`, x: pt.x + 4, y: pt.y + 6, w: 8, h: 10, taken: false })),
     enemies: Object.entries(ENEMY_KINDS).flatMap(([ch, cfg]) => (P[ch] ?? []).map((pt) => createEnemy(cfg.kind, pt.x, pt.y, cfg))),
+    urnas,
     zaps: [],
-    session: { fe: FE.max, lives: 3, score: 0, votes: 0, zap: PATRICIO_STATS.ammo, carrying: 0, delivered: 0, provas: 0, time: 0, hours72: HOURS72, maxX: 0 },
+    session: { fe: FE.max, lives: 3, score: 0, votes: 0, zap: PATRICIO_STATS.ammo, carrying: 0, delivered: 0, opened: 0, provas: 0, time: 0, hours72: HOURS72, maxX: 0 },
   };
 }
 
 export class MissaoGame {
-  constructor(canvas, levelData, { titleScreen, missionData, checagemData }) {
+  /** levels: [{ data, mission, checagem }]; deps opcionais: input, sfx, prerender (para testes sem tela). */
+  constructor(canvas, { levels, titleScreen, input, sfx = NO_SFX, prerender = () => null, startState }) {
     this.canvas = canvas;
-    this.ctx = canvas.getContext('2d');
-    this.ctx.imageSmoothingEnabled = false;
-    this.input = new Input(canvas);
-    this.levelData = levelData;
+    this.ctx = canvas?.getContext('2d');
+    if (this.ctx) this.ctx.imageSmoothingEnabled = false;
+    this.input = input;
+    this.levels = levels;
     this.titleScreen = titleScreen;
-    this.missionData = missionData;
-    this.checagemData = checagemData;
+    this.sfx = sfx;
+    this.prerender = prerender;
+    this.levelCanvases = {};
     this.messages = new MessageSystem(MESSAGES_MISSAO);
     this.save = readSave();
-    this.debug = new URLSearchParams(location.search).has('debug');
+    this.unlocked = Math.min(this.save.unlocked ?? 0, levels.length - 1);
+    this.levelIndex = this.unlocked;
+    this.mapCursor = this.levelIndex;
+    this.debug = false;
     this.fps = 60;
     this.time = 0;
-    const skip = new URLSearchParams(location.search).has('jogar');
-    this.fsm = new StateMachine(skip ? 'PLAYING' : 'TITLE', STATES);
+    this.fsm = new StateMachine(startState ?? 'TITLE', STATES);
     this.startLevel();
-    addEventListener('blur', () => this.fsm.send('blur'));
-    document.addEventListener('visibilitychange', () => document.hidden && this.fsm.send('blur'));
   }
+
+  get current() { return this.levels[this.levelIndex]; }
+  get levelData() { return this.current.data; }
 
   // ---------- ciclo de vida ----------
   startLevel() {
     Object.assign(this, createRun(this.levelData));
-    if (!this.levelCanvas) this.levelCanvas = prerenderLevel(this.level);
+    const id = this.levelData.id;
+    if (!(id in this.levelCanvases)) this.levelCanvases[id] = this.prerender(this.level);
+    this.levelCanvas = this.levelCanvases[id];
     this.checkpoint = { ...this.level.entities.spawn };
     this.spawnPlayer();
     this.camera = { x: 0, y: this.level.map.pixelH - VIEW_H };
@@ -93,7 +104,6 @@ export class MissaoGame {
     this.floats = [];
     this.balloon = null;
     this.banner = null;
-    this.headline = null;
     this.result = null;
     this.gateCooldown = 0;
   }
@@ -103,6 +113,20 @@ export class MissaoGame {
     Object.assign(this.player, { invuln: 0, hurtTimer: 0, throwTimer: 0, prayTimer: 0, zapCooldown: 0 });
     for (const pr of this.level.entities.promessas) Object.assign(pr, { state: 'idle', y: pr.homeY, vy: 0, solid: true, timer: 0 });
     this.zaps = [];
+  }
+
+  // ---------- objetivo da fase ----------
+  objectiveProgress() {
+    const o = this.levelData.objective;
+    return o.type === 'marmitas' ? this.session.delivered : this.session.opened;
+  }
+  objectiveDone() {
+    return this.objectiveProgress() >= this.levelData.objective.meta;
+  }
+  objectiveText() {
+    const o = this.levelData.objective;
+    const carrying = o.type === 'marmitas' && this.session.carrying ? `  · NA MÃO ${this.session.carrying}` : '';
+    return `${o.label} ${this.objectiveProgress()}/${o.meta}${carrying}`;
   }
 
   say(event, priority = 'normal') {
@@ -125,10 +149,21 @@ export class MissaoGame {
 
     switch (this.fsm.state) {
       case 'TITLE':
-        if (ready && (inp.confirmPressed || inp.throwPressed)) this.fsm.send('start');
+        if (ready && (inp.confirmPressed || inp.throwPressed)) { this.sfx.play('select'); this.fsm.send('start'); }
+        break;
+      case 'MAP':
+        if (inp.leftPressed && this.mapCursor > 0) { this.mapCursor--; this.sfx.play('select'); }
+        if (inp.rightPressed && this.mapCursor < this.unlocked) { this.mapCursor++; this.sfx.play('select'); }
+        if (ready && (inp.confirmPressed || inp.throwPressed)) {
+          this.levelIndex = this.mapCursor;
+          this.startLevel();
+          this.sfx.play('select');
+          this.fsm.send('enter');
+        } else if (ready && inp.pausePressed) this.fsm.send('back');
         break;
       case 'MISSION':
         if (ready && (inp.confirmPressed || inp.throwPressed)) { this.startLevel(); this.fsm.send('go'); this.say('start', 'high'); }
+        else if (ready && inp.pausePressed) this.fsm.send('back');
         break;
       case 'PLAYING':
         if (inp.pausePressed) { this.fsm.send('pause'); return; }
@@ -137,16 +172,21 @@ export class MissaoGame {
       case 'PAUSED':
         if (inp.pausePressed || inp.confirmPressed) this.fsm.send('resume');
         else if (inp.restartPressed) this.fsm.send('restart');
+        else if (inp.throwPressed) this.fsm.send('map');
         break;
       case 'DYING':
         if (this.fsm.time > 1) {
           if (this.session.lives > 0) { this.fsm.send('respawn'); this.spawnPlayer(); this.snapCamera(); }
-          else { this.headline = HEADLINES_MISSAO.gameover[0]; this.fsm.send('gameover'); }
+          else this.fsm.send('gameover');
         }
         break;
       case 'GAMEOVER':
-      case 'CHECAGEM':
         if (this.fsm.time > 0.8 && (inp.confirmPressed || inp.restartPressed)) this.fsm.send('retry');
+        else if (this.fsm.time > 0.8 && inp.pausePressed) this.fsm.send('map');
+        break;
+      case 'CHECAGEM':
+        if (this.fsm.time > 0.8 && inp.confirmPressed) this.fsm.send('next');
+        else if (this.fsm.time > 0.8 && inp.restartPressed) this.fsm.send('retry');
         break;
     }
     for (const f of this.floats) { f.ttl -= dt; f.y -= 18 * dt; }
@@ -169,6 +209,7 @@ export class MissaoGame {
       s.hours72 = HOURS72;
       this.banner = { label: 'GRUPO', text: 'FALTAM 72 HORAS. AGORA VAI. (DE NOVO)', ttl: 2.5 };
       this.say('clock', 'high');
+      this.sfx.play('clock');
     }
 
     // temporizadores do jogador
@@ -177,6 +218,7 @@ export class MissaoGame {
     p.throwTimer = Math.max(0, p.throwTimer - dt);
     p.prayTimer = Math.max(0, p.prayTimer - dt);
     p.zapCooldown = Math.max(0, p.zapCooldown - dt);
+    for (const u of this.urnas.values()) u.bump = Math.max(0, u.bump - dt);
     const locked = p.hurtTimer > 0 || p.prayTimer > 0;
     const control = locked ? { left: false, right: false, down: false, jumpPressed: false, jumpHeld: false } : inp;
 
@@ -184,7 +226,10 @@ export class MissaoGame {
       for (const ev of updatePromessa(pr, dt, p.standingOn === pr, map.pixelH)) if (ev === 'promessa:shake') this.say('promessa');
     }
     const prevBottom = p.y + p.h;
-    updatePlayer(p, control, dt, map, E.promessas);
+    for (const ev of updatePlayer(p, control, dt, map, E.promessas)) {
+      if (ev === 'jump') this.sfx.play('jump');
+      if (ev.type === 'ceiling') this.headbutt(ev.tx, ev.ty);
+    }
 
     // compartilhar corrente de Zap
     if (!locked && inp.throwPressed) {
@@ -193,6 +238,7 @@ export class MissaoGame {
         p.zapCooldown = ZAP.cooldown;
         p.throwTimer = 0.2;
         this.zaps.push(createZap(p.facing > 0 ? p.x + p.w : p.x - 9, p.y + 6, p.facing));
+        this.sfx.play('zap');
       } else if (s.zap === 0) this.float(p.x + 5, p.y - 6, 'SEM BATERIA', '#ff6a6a');
     }
 
@@ -204,9 +250,14 @@ export class MissaoGame {
       if (stomp) {
         p.vy = -0.7 * jumpVelocity(PATRICIO_STATS.jumpTiles);
         if (convertEnemy(e)) this.onConvert(e, SCORE.stomp);
-        else if (e.state === 'walk') { stunEnemy(e); this.float(e.x + 5, e.y - 6, 'CHECAGEM ADIADA', '#9ad8ff'); }
+        else if (e.state === 'walk') {
+          stunEnemy(e);
+          this.sfx.play('bump');
+          this.float(e.x + 5, e.y - 6, e.kind === 'fiscal' ? 'FISCALIZAÇÃO ADIADA' : 'CHECAGEM ADIADA', '#9ad8ff');
+        }
       } else if (e.state === 'walk') {
-        this.hurt(e.kind === 'checador' ? FE.hitChecador : FE.hitEnemy, e.x < p.x ? 1 : -1, e.kind === 'checador' ? 'checador' : 'hurt');
+        const event = e.kind === 'checador' ? 'checador' : e.kind === 'fiscal' ? 'fiscal' : 'hurt';
+        this.hurt(e.kind === 'checador' ? FE.hitChecador : FE.hitEnemy, e.x < p.x ? 1 : -1, event);
       }
     }
 
@@ -226,11 +277,11 @@ export class MissaoGame {
     // coletáveis e objetivo
     const tileX = Math.floor(p.x / TILE);
     if (tileX > s.maxX) { s.score += tileX - s.maxX; s.maxX = tileX; }
-    for (const v of E.votes) if (!v.taken && overlaps(p, v)) { v.taken = true; s.votes++; s.score += SCORE.vote; this.float(v.x + 4, v.y - 2, '+10'); }
-    for (const m of this.marmitas) if (!m.taken && overlaps(p, m)) { m.taken = true; s.carrying++; this.float(m.drawX + 5, m.drawY - 4, '+1 MARMITA', '#ffffff'); }
-    for (const c of this.chargers) if (!c.taken && overlaps(p, c)) { c.taken = true; s.zap += FE.ammoPickup; this.float(c.x + 4, c.y - 4, `+${FE.ammoPickup} ZAP`, '#7cf27c'); }
+    for (const v of E.votes) if (!v.taken && overlaps(p, v)) { v.taken = true; s.votes++; s.score += SCORE.vote; this.float(v.x + 4, v.y - 2, '+10'); this.sfx.play('coin'); }
+    for (const m of this.marmitas) if (!m.taken && overlaps(p, m)) { m.taken = true; s.carrying++; this.float(m.drawX + 5, m.drawY - 4, '+1 MARMITA', '#ffffff'); this.sfx.play('coin'); }
+    for (const c of this.chargers) if (!c.taken && overlaps(p, c)) { c.taken = true; s.zap += FE.ammoPickup; this.float(c.x + 4, c.y - 4, `+${FE.ammoPickup} ZAP`, '#7cf27c'); this.sfx.play('coin'); }
     for (const d of this.pendrives) {
-      if (!d.taken && overlaps(p, d)) { d.taken = true; s.provas++; s.score += SCORE.pendrive; this.float(d.x + 4, d.y - 4, 'PROVA DA FRAUDE!'); this.say('pendrive', 'high'); }
+      if (!d.taken && overlaps(p, d)) { d.taken = true; s.provas++; s.score += SCORE.pendrive; this.float(d.x + 4, d.y - 4, 'PROVA DA FRAUDE!'); this.say('pendrive', 'high'); this.sfx.play('coin'); }
     }
     for (const a of this.acampados) {
       a.timer += dt;
@@ -240,8 +291,9 @@ export class MissaoGame {
         s.carrying--;
         s.delivered++;
         s.score += SCORE.marmita;
-        this.float(a.x + 5, a.y - 8, `MARMITA ${s.delivered}/${this.levelData.marmitasMeta}`, '#7cf27c');
+        this.float(a.x + 9, a.y + 24, `MARMITA ${s.delivered}/${this.levelData.objective.meta}`, '#7cf27c');
         this.say('marmita', 'high');
+        this.sfx.play('deliver');
       }
     }
     // pneu sagrado (checkpoint): o Patrício se ajoelha e reza; a Fé é restaurada
@@ -256,26 +308,45 @@ export class MissaoGame {
         p.vx = 0;
         this.float(cp.x + 8, cp.y - 4, 'FÉ RESTAURADA', '#f5d000');
         this.say('checkpoint', 'high');
+        this.sfx.play('checkpoint');
       }
     }
-    // portão do quartel
+    // chegada (portão / sala): só com o objetivo cumprido
     if (overlaps(p, E.finish)) {
-      if (s.delivered >= this.levelData.marmitasMeta) this.complete();
+      if (this.objectiveDone()) this.complete();
       else if (this.gateCooldown === 0) {
         this.gateCooldown = 3;
-        this.say('gate', 'high');
-        this.float(E.finish.x + 24, E.finish.y - 8, `FALTAM ${this.levelData.marmitasMeta - s.delivered} MARMITAS`, '#ff6a6a');
+        this.say(this.levelData.objective.type === 'marmitas' ? 'gate' : 'objetivo', 'high');
+        const o = this.levelData.objective;
+        this.float(E.finish.x + 24, E.finish.y - 8, `FALTAM ${o.meta - this.objectiveProgress()} (${o.label})`, '#ff6a6a');
       }
     }
 
-    if (s.fe <= 0) { s.fe = 0; this.fsm.send('awake'); return; }
+    if (s.fe <= 0) { s.fe = 0; this.sfx.play('die'); this.fsm.send('awake'); return; }
     if (p.y > map.pixelH + 8) this.die();
     this.updateCamera(dt);
+  }
+
+  /** Cabeçada por baixo num bloco: se for urna fechada, "audita" (abre). */
+  headbutt(tx, ty) {
+    const u = this.urnas.get(`${tx},${ty}`);
+    if (!u) return;
+    u.bump = 0.15;
+    if (u.open) { this.sfx.play('bump'); return; }
+    u.open = true;
+    const s = this.session;
+    s.opened++;
+    s.votes++;
+    s.score += SCORE.urna + SCORE.vote;
+    this.float(tx * TILE + 8, ty * TILE - 6, URNA_LABELS[s.opened % URNA_LABELS.length], '#ffffff');
+    this.say('urna', s.opened === 1 ? 'high' : 'normal');
+    this.sfx.play('urna');
   }
 
   onConvert(e, points) {
     this.session.score += points;
     this.float(e.x + 5, e.y - 8, this.messages.pick('convert', 'any'));
+    this.sfx.play('convert');
   }
 
   hurt(amount, dir, event) {
@@ -288,11 +359,13 @@ export class MissaoGame {
     p.vy = -200;
     this.float(p.x + 5, p.y - 8, `-${amount} FÉ`, '#ff6a6a');
     this.say(event, 'high');
+    this.sfx.play('hurt');
   }
 
   die() {
     this.session.lives--;
     this.say('death', 'high');
+    this.sfx.play('die');
     this.fsm.send('die');
   }
 
@@ -304,12 +377,16 @@ export class MissaoGame {
     const records = (this.save.records ??= {});
     const prev = records[key];
     const newRecord = !prev || s.score > prev.score;
-    if (newRecord) {
-      records[key] = { score: s.score, time: Math.round(s.time * 10) / 10, date: new Date().toISOString().slice(0, 10) };
-      writeSave(this.save);
-    }
-    const h = HEADLINES_MISSAO.complete;
+    if (newRecord) records[key] = { score: s.score, time: Math.round(s.time * 10) / 10, date: new Date().toISOString().slice(0, 10) };
+    // libera a próxima fase jogável
+    const next = Math.min(this.levelIndex + 1, this.levels.length - 1);
+    this.unlocked = Math.max(this.unlocked, next);
+    this.save.unlocked = this.unlocked;
+    this.mapCursor = next;
+    writeSave(this.save);
+    const h = HEADLINES_MISSAO[key] ?? HEADLINES_MISSAO.complete;
     this.result = { timeBonus, newRecord, headline: h[Math.floor(Math.random() * h.length)] };
+    this.sfx.play('win');
     this.fsm.send('win');
   }
 
@@ -329,7 +406,9 @@ export class MissaoGame {
   }
 
   // ---------- laço ----------
-  run() {
+  run(render, drawRotate) {
+    addEventListener('blur', () => this.fsm.send('blur'));
+    document.addEventListener('visibilitychange', () => document.hidden && this.fsm.send('blur'));
     let last = performance.now();
     let acc = 0;
     let fpsAcc = 0;
@@ -348,7 +427,7 @@ export class MissaoGame {
         let steps = 0;
         while (acc >= STEP && steps < 5) { this.step(STEP); acc -= STEP; steps++; }
         if (steps === 5) acc = 0;
-        renderMissao(this.ctx, this);
+        render(this.ctx, this);
       }
       requestAnimationFrame(frame);
     };

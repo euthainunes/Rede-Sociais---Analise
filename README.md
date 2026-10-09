@@ -3,7 +3,7 @@
 
 Jogo de plataforma 2D satírico. Você é o **Patrício**, um patriota de grupo de Zap com uma missão: **soltar o Jair**. Cada fase começa com uma fake news em que ele acredita e termina na **Checagem**, que mostra o fato real com a fonte.
 
-**Estado atual:** a fase 1 (**Acampamento do Quartel**) pode ser jogada do início ao fim: tela inicial, cartão de missão, a fase em si e a Checagem.
+**Estado atual:** 2 de 7 fases jogáveis, ligadas por um **mapa** até Brasília, com efeitos sonoros. As fases são **1. Acampamento do Quartel** e **2. A Urna Fraudada**. O progresso fica salvo no aparelho.
 
 ![Fase 1](docs/jogo/missao-entrega.png)
 
@@ -13,6 +13,7 @@ Jogo de plataforma 2D satírico. Você é o **Patrício**, um patriota de grupo 
 python3 -m http.server 8000   # na raiz do repositório
 # abrir http://localhost:8000          → Operação Liberta o Mito
 # abrir http://localhost:8000/?jogar   → pula direto para a fase
+# abrir http://localhost:8000/?jogar&fase=2 → pula direto para a fase 2
 # abrir http://localhost:8000/classico.html → protótipo antigo (Capitão × L-Livre)
 ```
 
@@ -23,6 +24,8 @@ python3 -m http.server 8000   # na raiz do repositório
 | Compartilhar corrente de Zap | X ou J | ZAP |
 | Descer da lona | ↓ + pular | — |
 | Pausar | Esc ou P | II |
+| Som liga/desliga | M | — |
+| Voltar ao mapa (na pausa) | X | ZAP |
 | Painel de depuração | ` (crase) ou `?debug` na URL | — |
 
 ### Regras da fase 1
@@ -36,6 +39,23 @@ python3 -m http.server 8000   # na raiz do repositório
 - **Pendrives:** são as "provas da fraude". Na Checagem, descobre-se que estão vazios.
 - Buracos de obra parada custam uma vida (3 no total).
 
+### Fase 2: A Urna Fraudada
+
+![Fase 2](docs/jogo/fase2-cabecada.png)
+
+- **Fake news:** "A urna é fraudada. O 01 tem as provas."
+- **Objetivo:** dar **cabeçada por baixo** em 10 urnas gigantes (as que piscam em amarelo) para "auditar". Todas estão vazias ("0 ERROS", "SÓ VOTO"). Depois, chegar à sala do "código-fonte".
+- **Fiscal:** como o Checador, não se converte; pisar nele só o atordoa.
+- **Checagem:**
+  - relatório das Forças Armadas com 0% de inconsistência;
+  - multa de R$ 22,9 milhões ao PL;
+  - inelegibilidade de Bolsonaro até 2030 (TSE, jun/2023).
+- Fontes:
+  - [Diário do Nordeste](https://diariodonordeste.verdesmares.com.br/pontopoder/relatorio-do-ministerio-da-defesa-nao-aponta-fraude-nas-eleicoes-de-2022-1.3299074)
+  - [TSE](https://www.tse.jus.br/comunicacao/noticias/2022/Dezembro/tse-confirma-multa-de-r-22-9-milhoes-ao-pl-por-litigancia-de-ma-fe)
+  - [Poder360 (inelegibilidade)](https://www.poder360.com.br/justica/tse-forma-maioria-pela-inelegibilidade-de-bolsonaro/)
+  - [Poder360 (ação do PL)](https://www.poder360.com.br/eleicoes/moraes-rejeita-pedido-para-invalidar-votos-e-multa-pl-em-r-22-milhoes/)
+
 ### Fontes da Checagem da fase 1
 
 - [Poder360: acampamentos desfeitos no país](https://www.poder360.com.br/brasil/acampamentos-de-extremistas-de-direita-sao-desfeitos-no-pais/)
@@ -43,7 +63,7 @@ python3 -m http.server 8000   # na raiz do repositório
 - [Poder360: STF condenou 835 pelo 8 de Janeiro](https://www.poder360.com.br/poder-justica/depois-de-3-anos-stf-condenou-810-envolvidos-no-8-de-janeiro/)
 - [TSE: relatório de transparência eleitoral 2022](https://www.tse.jus.br/eleicoes/eleicoes-2022/arquivos/transparencia-eleitoral-brasil)
 
-Testes das regras (Node 18+): `npm test`. Inclui um robô que conclui a fase 1 entregando as 5 marmitas.
+Testes das regras (Node 18+): `npm test`. Inclui um robô que conclui as fases 1 e 2 só com as entradas normais.
 
 > Sátira. Feito com auxílio de IA. Personagens são caricaturas; fatos com fonte na tela de Checagem.
 

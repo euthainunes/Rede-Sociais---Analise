@@ -26,6 +26,7 @@ export const SCORE = {
   stomp: 150,
   marmita: 200,
   pendrive: 300,
+  urna: 150,
   checkpoint: 250,
   complete: 2000,
 };

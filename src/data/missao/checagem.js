@@ -20,11 +20,34 @@ export const CHECAGEM = {
   },
 };
 
+CHECAGEM.urnas = {
+  titulo: 'CHECAGEM - FASE 2: A URNA FRAUDADA',
+  itens: [
+    { tag: 'FAKE', texto: '"A URNA ELETRÔNICA É FRAUDADA." NENHUMA FRAUDE FOI COMPROVADA. O PATRÍCIO ABRIU 10 URNAS: TODAS VAZIAS DE FRAUDE.' },
+    { tag: 'FATO', texto: 'O RELATÓRIO DAS FORÇAS ARMADAS (NOV/2022) COMPAROU BOLETINS DE URNA E RESULTADOS: 0% DE INCONSISTÊNCIA. A DEFESA DISSE DEPOIS QUE NÃO "EXCLUÍA" FRAUDE, SEM APONTAR NENHUMA.' },
+    { tag: 'FATO', texto: 'O PL PEDIU PARA ANULAR VOTOS DE 279 MIL URNAS. O TSE REJEITOU POR FALTA DE PROVAS E MULTOU O PARTIDO EM R$ 22,9 MILHÕES (NOV-DEZ/2022).' },
+    { tag: 'FATO', texto: 'EM JUN/2023 O TSE TORNOU BOLSONARO INELEGÍVEL ATÉ 2030 PELA REUNIÃO COM EMBAIXADORES (JUL/2022) EM QUE ATACOU O SISTEMA ELEITORAL.' },
+    { tag: 'PIADA', texto: 'O "CÓDIGO SECRETO", AS URNAS GIGANTES E A SALA DO CÓDIGO-FONTE SÃO FICÇÃO DESTE JOGO.' },
+  ],
+  fontes: [
+    { nome: 'Diário do Nordeste: relatório da Defesa não aponta fraude', url: 'https://diariodonordeste.verdesmares.com.br/pontopoder/relatorio-do-ministerio-da-defesa-nao-aponta-fraude-nas-eleicoes-de-2022-1.3299074' },
+    { nome: 'TSE: confirma multa de R$ 22,9 milhões ao PL', url: 'https://www.tse.jus.br/comunicacao/noticias/2022/Dezembro/tse-confirma-multa-de-r-22-9-milhoes-ao-pl-por-litigancia-de-ma-fe' },
+    { nome: 'Poder360: TSE forma maioria pela inelegibilidade de Bolsonaro', url: 'https://www.poder360.com.br/justica/tse-forma-maioria-pela-inelegibilidade-de-bolsonaro/' },
+    { nome: 'Poder360: Moraes rejeita ação do PL contra urnas', url: 'https://www.poder360.com.br/eleicoes/moraes-rejeita-pedido-para-invalidar-votos-e-multa-pl-em-r-22-milhoes/' },
+  ],
+};
+
 export const MISSAO_CARD = {
   quartel: {
     remetente: 'GRUPO DA FAMÍLIA',
     texto: 'URGENTE!!! AS FORÇAS ARMADAS AGEM EM 72 HORAS!!! Vá para o quartel, entregue 5 marmitas aos acampados e chegue ao portão. Depois disso: SOLTAR O MITO. Reze no pneu para salvar o progresso. Não leia checagens.',
     medida: 'MARMITAS 0/5 · FALTAM 72H',
     controles: '◀ ▶ ANDA · ▲/ESPAÇO PULA · X COMPARTILHA ZAP',
+  },
+  urnas: {
+    remetente: 'GRUPO DA FAMÍLIA',
+    texto: 'URGENTE!!! O 01 TEM AS PROVAS: A URNA É FRAUDADA!!! Invada o depósito, dê cabeçada em 10 urnas para achar o CÓDIGO SECRETO e leve tudo até a sala do código-fonte. Cuidado com o Fiscal: ele não muda de ideia.',
+    medida: 'URNAS AUDITADAS 0/10',
+    controles: '◀ ▶ ANDA · ▲/ESPAÇO PULA (CABEÇADA NA URNA) · X ZAP',
   },
 };

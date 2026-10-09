@@ -6,7 +6,7 @@ import { TILE } from '../config/constants.js';
 import { TileMap } from './physics.js';
 import { createPromessa } from './platforms.js';
 
-const TILE_CHARS = new Set(['#', 'B', 'C', '=']);
+const TILE_CHARS = new Set(['#', 'B', 'C', '=', 'Q']);
 
 export function loadLevel(data) {
   const width = Math.max(...data.map.map((x) => x.length));

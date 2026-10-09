@@ -47,6 +47,10 @@ export const THEMES = {
     top: '#a8703c', topEdge: '#c99a60', topShadow: '#7a4e26', fill: '#5a3a1e', fillDot: '#4a2e16', fillLine: '#6a4626',
     block: '#8a6a9a', blockMortar: '#a88ab8', blockDark: '#5a4468',
   },
+  galpao: {
+    top: '#a8acb4', topEdge: '#d0d4dc', topShadow: '#7a7e86', fill: '#5a5e66', fillDot: '#4a4e56', fillLine: '#f5d000',
+    block: '#c8a070', blockMortar: '#e0bc8a', blockDark: '#8a6a44',
+  },
   planalto: {
     top: '#f2efe8', topEdge: '#ffffff', topShadow: '#c9c4b8', fill: '#d8d2c4', fillDot: '#c6bfae', fillLine: '#b8b0a0',
     block: '#ebe7de', blockMortar: '#ffffff', blockDark: '#bdb6a6',
@@ -87,6 +91,10 @@ export function drawGround(ctx, theme, x, y, w, h, seed = 7) {
       rect(ctx, gx, y + 6, 16, h - 6, (gx / 16) % 2 ? t.fill : t.fillLine);
       rect(ctx, gx, y + 6, 1, h - 6, t.fillDot);
     }
+  }
+  if (theme === 'galpao') {
+    // faixa amarela de segurança no piso
+    for (let gx = x; gx < x + w; gx += 8) rect(ctx, gx, y + 7, 4, 2, (gx / 8) % 2 ? '#f5d000' : '#1a1a1a');
   }
   if (theme === 'casa') {
     // assoalho de tacos
@@ -170,6 +178,18 @@ export function drawBlock(ctx, theme, x, y, w = 16, h = 16) {
     rect(ctx, x, y + h - 1, w, 1, t.blockDark);
     return;
   }
+  if (theme === 'galpao') {
+    // caixas de papelão "URNA - FRÁGIL"
+    rect(ctx, x, y, w, h, t.blockDark);
+    for (let gx = x; gx < x + w; gx += 16) for (let gy = y; gy < y + h; gy += 16) {
+      rect(ctx, gx + 1, gy + 1, 14, 14, t.block);
+      rect(ctx, gx + 1, gy + 1, 14, 1, t.blockMortar);
+      rect(ctx, gx + 7, gy + 1, 2, 14, '#b08858');
+      rect(ctx, gx + 3, gy + 9, 10, 3, '#f4efe2');
+      rect(ctx, gx + 4, gy + 10, 1, 1, '#c8202f'); rect(ctx, gx + 6, gy + 10, 1, 1, '#c8202f'); rect(ctx, gx + 8, gy + 10, 1, 1, '#c8202f'); rect(ctx, gx + 10, gy + 10, 1, 1, '#c8202f');
+    }
+    return;
+  }
   if (theme === 'quartel') {
     // sacos de areia
     rect(ctx, x, y, w, h, '#3e4a28');
@@ -236,6 +256,15 @@ export function drawOneWay(ctx, theme, x, y, w) {
     rect(ctx, x, y, w, 4, '#2f80ed');
     rect(ctx, x, y, w, 1, '#6ab0ff');
     for (let i = 0; i < w; i += 8) rect(ctx, x + i, y + 4, 4, 2, '#1f5ab0');
+    return;
+  }
+  if (theme === 'galpao') {
+    // prateleira metálica com urnas pequenas
+    rect(ctx, x, y, w, 3, '#8a9aaa');
+    rect(ctx, x, y, w, 1, '#c0ccd8');
+    rect(ctx, x, y + 3, w, 1, '#4a5a6a');
+    rect(ctx, x + 1, y + 4, 2, 8, '#6a7a8a');
+    rect(ctx, x + w - 3, y + 4, 2, 8, '#6a7a8a');
     return;
   }
   if (theme === 'rodovia') {

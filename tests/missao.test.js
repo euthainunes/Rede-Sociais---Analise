@@ -4,6 +4,7 @@ import { TileMap } from '../src/core/physics.js';
 import { createEnemy, updateEnemy, convertEnemy, stunEnemy } from '../src/core/enemy.js';
 import { createZap, updateZap, ZAP } from '../src/core/zap.js';
 import { MissaoGame, STATES, createRun } from '../src/game/missao.js';
+import { URNAS } from '../src/data/missao/urnas.js';
 import { QUARTEL } from '../src/data/missao/quartel.js';
 import { CHECAGEM, MISSAO_CARD } from '../src/data/missao/checagem.js';
 import { MESSAGES_MISSAO } from '../src/data/missao/messages.js';
@@ -65,8 +66,8 @@ test('corrente que não acerta ninguém volta e acerta quem compartilhou', () =>
 
 test('fase 1 tem marmitas suficientes para os acampados e 3 provas', () => {
   const run = createRun(QUARTEL);
-  assert.equal(run.acampados.length, QUARTEL.marmitasMeta);
-  assert.ok(run.marmitas.length >= QUARTEL.marmitasMeta);
+  assert.equal(run.acampados.length, QUARTEL.objective.meta);
+  assert.ok(run.marmitas.length >= QUARTEL.objective.meta);
   assert.equal(run.pendrives.length, 3);
   assert.ok(run.enemies.some((e) => e.kind === 'checador' && !e.convertible));
   // cada acampado precisa ter uma marmita disponível antes dele no caminho
@@ -84,23 +85,22 @@ test('Checagem da fase 1 desmente a fake news e todo fato tem fonte listada', ()
 });
 
 // ---------- robô que joga a fase com as regras reais ----------
-function headlessGame() {
-  const g = Object.create(MissaoGame.prototype);
-  g.levelData = QUARTEL;
-  g.messages = new MessageSystem(MESSAGES_MISSAO);
-  g.fsm = new StateMachine('PLAYING', STATES);
-  g.save = {};
-  g.levelCanvas = {}; // pula a pré-renderização (sem tela no Node)
-  g.time = 0;
+const LEVELS = [
+  { data: QUARTEL, mission: MISSAO_CARD.quartel, checagem: CHECAGEM.quartel },
+  { data: URNAS, mission: MISSAO_CARD.urnas, checagem: CHECAGEM.urnas },
+];
+function headlessGame(levelIndex = 0) {
+  const g = new MissaoGame(null, { levels: LEVELS, input: { frame: () => ({}) }, startState: 'PLAYING' });
+  g.levelIndex = levelIndex;
   g.startLevel();
   return g;
 }
 
-test('robô conclui a fase 1: entrega 5 marmitas, sobrevive e chega à Checagem', () => {
-  const g = headlessGame();
+/** Robô simples: corre para a direita, pula buracos/paredes/inimigos e dá cabeçada em urnas fechadas. */
+function botPlay(g, seconds = 180) {
   const map = g.level.map;
   let jumpHold = 0;
-  for (let i = 0; i < 60 * 180 && g.fsm.is('PLAYING'); i++) {
+  for (let i = 0; i < 60 * seconds && g.fsm.is('PLAYING'); i++) {
     const p = g.player;
     const front = p.x + p.w + 2;
     const footRow = Math.floor((p.y + p.h + 1) / TILE);
@@ -109,17 +109,52 @@ test('robô conclui a fase 1: entrega 5 marmitas, sobrevive e chega à Checagem'
     const groundAhead = map.isSolid(aheadCol, footRow) || map.isOneWay(aheadCol, footRow) ||
       g.level.entities.promessas.some((pr) => pr.solid && front + 10 >= pr.x && front + 10 <= pr.x + pr.w && Math.abs(pr.y - (p.y + p.h)) < 2);
     const enemyAhead = g.enemies.some((e) => e.state === 'walk' && e.x > p.x && e.x - (p.x + p.w) < 26 && Math.abs(e.y - p.y) < 8);
+    const cx = Math.floor((p.x + p.w / 2) / TILE);
+    const headRow = Math.floor(p.y / TILE);
+    const urnaAbove = [1, 2].some((d) => { const u = g.urnas.get(`${cx},${headRow - d}`); return u && !u.open; });
     let jumpPressed = false;
-    if (p.onGround && (wallAhead || !groundAhead || enemyAhead)) { jumpPressed = true; jumpHold = 0.4; }
+    if (p.onGround && (wallAhead || !groundAhead || enemyAhead || urnaAbove)) { jumpPressed = true; jumpHold = 0.4; }
     jumpHold -= STEP;
-    g.input = { frame: () => ({}) };
     g.updatePlaying({ left: false, right: true, down: false, jumpPressed, jumpHeld: jumpHold > 0, throwPressed: false }, STEP);
     g.fsm.time += STEP;
     if (g.fsm.is('DYING')) { g.fsm.send('respawn'); g.spawnPlayer(); }
   }
+}
+
+test('robô conclui a fase 1: entrega 5 marmitas, sobrevive e chega à Checagem', () => {
+  const g = headlessGame(0);
+  botPlay(g);
   assert.equal(g.fsm.state, 'CHECAGEM', `parou em ${g.fsm.state}, x=${Math.floor(g.player.x / TILE)}, marmitas ${g.session.delivered}, fé ${g.session.fe}, vidas ${g.session.lives}`);
   assert.equal(g.session.delivered, 5);
   assert.ok(g.session.lives >= 1);
+  assert.equal(g.unlocked, 1, 'concluir a fase 1 libera a fase 2');
+});
+
+test('robô conclui a fase 2: audita 10 urnas com cabeçada e chega ao código-fonte', () => {
+  const g = headlessGame(1);
+  botPlay(g);
+  assert.equal(g.fsm.state, 'CHECAGEM', `parou em ${g.fsm.state}, x=${Math.floor(g.player.x / TILE)}, urnas ${g.session.opened}, fé ${g.session.fe}, vidas ${g.session.lives}`);
+  assert.ok(g.session.opened >= 10);
+});
+
+test('cabeçada abre a urna uma vez só; urna aberta continua sólida', () => {
+  const g = headlessGame(1);
+  const [u] = g.urnas.values();
+  g.headbutt(u.tx, u.ty);
+  g.headbutt(u.tx, u.ty);
+  assert.equal(u.open, true);
+  assert.equal(g.session.opened, 1);
+  assert.equal(g.level.map.isSolid(u.tx, u.ty), true);
+});
+
+test('fase 2 tem urnas suficientes alcançáveis do chão e Checagem com fontes', () => {
+  const run = createRun(URNAS);
+  const fromGround = [...run.urnas.values()].filter((u) => u.ty === 8).length;
+  assert.ok(fromGround >= URNAS.objective.meta, `só ${fromGround} urnas alcançáveis do chão`);
+  const c = CHECAGEM.urnas;
+  assert.ok(c.itens.some((i) => i.tag === 'FAKE'));
+  assert.ok(c.fontes.every((f) => f.url.startsWith('https://')));
+  assert.ok(run.enemies.some((e) => e.kind === 'fiscal' && !e.convertible));
 });
 
 test('o relógio das 72 horas zera e recomeça (nunca acaba)', () => {
@@ -142,7 +177,7 @@ test('portão não abre sem as marmitas', () => {
   Object.assign(g.player, { x: F.x + 10, y: F.y + 26, vx: 0, vy: 0 });
   g.updatePlaying({ left: false, right: false, down: false, jumpPressed: false, jumpHeld: false, throwPressed: false }, STEP);
   assert.equal(g.fsm.state, 'PLAYING');
-  g.session.delivered = 5;
+  g.session.delivered = QUARTEL.objective.meta;
   g.updatePlaying({ left: false, right: false, down: false, jumpPressed: false, jumpHeld: false, throwPressed: false }, STEP);
   assert.equal(g.fsm.state, 'CHECAGEM');
 });

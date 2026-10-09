@@ -10,11 +10,13 @@
 export const QUARTEL = {
   id: 'quartel',
   numero: 1,
+  ano: '2022',
   name: 'ACAMPAMENTO DO QUARTEL',
   theme: 'quartel',
   background: 'quartel',
   targetTime: 150,
-  marmitasMeta: 5,
+  objective: { type: 'marmitas', meta: 5, label: 'MARMITAS' },
+  finishLabel: 'QUARTEL',
   map: [
     '........................................................................................................................................................',
     '........................................................................................................................................................',

@@ -83,7 +83,49 @@ export function quartel(ctx, w, h, camX = 0) {
   for (let i = 0; i < 4; i++) rect(ctx, cx + 4 + (i % 2) * 4, 146 - i * 7, 6, 5, 'rgba(220,220,220,0.6)');
 }
 
-// ---------------- Fase 2: Rodovia do Caminhão ----------------
+// ---------------- Fase 2: A Urna Fraudada (galpão de urnas) ----------------
+export function galpao(ctx, w, h, camX = 0) {
+  rect(ctx, 0, 0, w, h, '#3a3e48');
+  const far = Math.round(camX * 0.2);
+  // parede de chapas e janelas altas
+  for (let x = -20; x < w + 20; x += 20) rect(ctx, x - wrap(far, 20), 0, 1, 180, '#30343c');
+  for (let i = 0; i < 5; i++) {
+    const wx = Math.round(wrap(i * 120 - far, 600)) - 60;
+    rect(ctx, wx, 14, 60, 20, '#8aa8c8');
+    for (let k = 0; k < 60; k += 10) rect(ctx, wx + k, 14, 1, 20, '#3a3e48');
+  }
+  paranoia(ctx, Math.round(wrap(330 - far, 600)) - 60, 16, 0.2);
+  // estantes cheias de urnas (camada do meio)
+  const mid = Math.round(camX * 0.5);
+  for (let i = 0; i < 6; i++) {
+    const sx = Math.round(wrap(i * 110 - mid, 660)) - 80;
+    for (let lvl = 0; lvl < 4; lvl++) {
+      const y = 64 + lvl * 28;
+      rect(ctx, sx, y + 20, 90, 3, '#6a7a8a');
+      for (let k = 0; k < 6; k++) {
+        rect(ctx, sx + 4 + k * 14, y + 8, 12, 12, '#1a1a1a');
+        rect(ctx, sx + 5 + k * 14, y + 9, 10, 10, '#c8c8c8');
+        rect(ctx, sx + 7 + k * 14, y + 11, 6, 3, '#3a4a3a');
+      }
+    }
+    rect(ctx, sx, 64, 2, 120, '#6a7a8a');
+    rect(ctx, sx + 88, 64, 2, 120, '#6a7a8a');
+  }
+  // penumbra: o fundo fica escuro para as urnas jogáveis se destacarem
+  rect(ctx, 0, 0, w, h, 'rgba(16,20,30,0.5)');
+  // faixas e avisos
+  const fx = Math.round(wrap(60 - mid, 660)) - 80;
+  roundRect(ctx, fx, 40, 120, 16, '#1f3a6a', '#ffffff');
+  text(ctx, 'DEPÓSITO DE URNAS', fx + 60, 45, { color: '#ffffff', align: 'center' });
+  const ax = Math.round(wrap(380 - mid, 660)) - 80;
+  roundRect(ctx, ax, 40, 110, 16, '#f5d000', '#1a1a1a');
+  text(ctx, 'AUDITORIA ABERTA', ax + 55, 45, { color: '#1a1a1a', align: 'center' });
+  const px = Math.round(wrap(560 - mid, 660)) - 80;
+  roundRect(ctx, px, 40, 96, 16, '#ffffff', '#c8202f');
+  text(ctx, 'CÓDIGO-FONTE: AQUI', px + 48, 45, { color: '#c8202f', align: 'center' });
+}
+
+// ---------------- Fase 2 (antiga): Rodovia do Caminhão ----------------
 export function rodovia(ctx, w, h, camX = 0) {
   sky(ctx, w, h, ['#8ac4f0', '#9dcef2', '#b2d8f4', '#c8e2f6', '#ddecf6', '#eef5f6']);
   clouds(ctx, camX, 10, '#ffffff', 21);
@@ -248,4 +290,4 @@ export function drawTelao(ctx, x, y, face, label = 'AO VIVO') {
   rect(ctx, x + 20, y + 36, 4, 20, '#3a3a3a');
 }
 
-export const BACKGROUNDS_MISSAO = { quartel, rodovia, chocolate, porto, grupo, domiciliar, esplanada };
+export const BACKGROUNDS_MISSAO = { quartel, galpao, rodovia, chocolate, porto, grupo, domiciliar, esplanada };

@@ -157,3 +157,26 @@ KGGGGGGK
 .KKKKKK.
 ...KK...
 ...KK...`), { K: '#1a1a1a', G: '#25d366', Y: '#ffffff' });
+
+/** Urna gigante (bloco 16x16 que se abre com uma cabeçada por baixo). open: já auditada. */
+export function drawUrnaBloco(ctx, x, y, open = false, t = 0) {
+  const r = (a, b, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(x + a, y + b, w, h); };
+  // brilho amarelo pulsante nas urnas ainda não auditadas (destaque do fundo)
+  if (!open && Math.floor(t * 2) % 2 === 0) { r(-1, -1, 18, 18, '#f5d000'); }
+  r(0, 0, 16, 16, '#1a1a1a');
+  r(1, 1, 14, 14, open ? '#9a9aa0' : '#d8d8d8');
+  r(1, 1, 14, 1, open ? '#b8b8c0' : '#ffffff');
+  r(3, 3, 10, 5, open ? '#3a3a3a' : '#3a4a3a');
+  if (open) {
+    // tela mostra "0" (nada encontrado)
+    r(7, 4, 2, 3, '#7cf27c'); r(6, 4, 1, 3, '#7cf27c'); r(9, 4, 1, 3, '#7cf27c');
+    r(7, 5, 2, 1, '#3a3a3a');
+  } else {
+    // "?" piscando, estilo bloco de mistério
+    const on = Math.floor(t * 3) % 2 === 0;
+    const c = on ? '#7cf27c' : '#4aa04a';
+    r(6, 3, 4, 1, c); r(9, 4, 1, 1, c); r(8, 5, 1, 1, c); r(8, 7, 1, 1, c);
+  }
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) r(3 + i * 3, 10 + j * 2, 2, 1, open ? '#7a7a80' : '#ffffff');
+  r(12, 12, 2, 1, open ? '#5a7a5a' : '#1f9e3a');
+}

@@ -2,7 +2,7 @@
 
 import { TILE } from '../config/constants.js';
 
-const SOLID = new Set(['#', 'B', 'C']);
+const SOLID = new Set(['#', 'B', 'C', 'Q']); // Q = urna gigante (bloco que se abre de baixo)
 const ONE_WAY = new Set(['=']);
 
 export class TileMap {
@@ -103,6 +103,9 @@ export function moveAndCollide(body, map, dt, platforms = [], opts = {}) {
         body.y = (ty + 1) * TILE;
         body.vy = 0;
         result.hitCeiling = true;
+        // tile mais próximo do centro do corpo (a "cabeçada" acerta um bloco só)
+        const centerTx = Math.floor((body.x + body.w / 2) / TILE);
+        result.ceilingTile = { tx: map.isSolid(centerTx, ty) ? centerTx : tx, ty };
         break;
       }
     }
