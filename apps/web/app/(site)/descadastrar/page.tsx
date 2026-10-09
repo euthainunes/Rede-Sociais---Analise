@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Cancelar e-mails", robots: { index: 
 export default async function Unsubscribe({ searchParams }: { searchParams: Promise<{ t?: string; feito?: string }> }) {
   const sp = await searchParams;
   return (
-    <section style={{ maxWidth: 560, marginTop: 32 }}>
+    <section className="form-page">
       <h1>Cancelar e-mails</h1>
       {sp.feito === "1" ? <p className="flash ok">Pronto. Você não receberá mais alertas nem a newsletter.</p>
         : sp.feito === "0" ? <p className="flash erro">Link inválido. Use “Minha conta” para gerenciar.</p>

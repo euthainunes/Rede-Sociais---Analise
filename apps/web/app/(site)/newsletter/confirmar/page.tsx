@@ -10,7 +10,7 @@ export default async function ConfirmNewsletter({ searchParams }: { searchParams
   const sql = getSql();
   const ok = sql && t ? await confirmNewsletter(sql, t) : false;
   return (
-    <section style={{ maxWidth: 560, marginTop: 32 }}>
+    <section className="form-page">
       <h1>{ok ? "Inscrição confirmada ✅" : "Link inválido ou expirado"}</h1>
       <p>{ok ? "A primeira edição chega na próxima semana." : "Faça a inscrição novamente."}</p>
     </section>

@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Icon } from "@/components/Icon";
 import { PriceBadge } from "@/components/PriceBadge";
+import { ScoreRing } from "@/components/Score";
 import { catalog } from "@/lib/data";
-import { money, pct, score } from "@/lib/format";
+import { money, pct } from "@/lib/format";
 
 export const metadata: Metadata = {
   title: "Ofertas de celulares com desconto real",
@@ -26,35 +28,42 @@ export default async function DealsPage({ searchParams }: Props) {
   const deals = await catalog().deals("celulares", sort);
   return (
     <>
-      <h1>Ofertas</h1>
-      <p className="muted">
-        O desconto real compara o preço de hoje com a mediana dos últimos 90 dias. “Melhor oportunidade” combina desconto real, nota e
-        confiabilidade da loja — nunca comissão.
-      </p>
-      <nav className="row" aria-label="Ordenar">
+      <header className="page-head">
+        <span className="eyebrow"><Icon name="tag" /> Ofertas de celulares</span>
+        <h1>Ofertas com desconto <mark>real</mark></h1>
+        <p className="lead">
+          O desconto real compara o preço de hoje com a mediana dos últimos 90 dias. “Melhor oportunidade” combina desconto real, nota e
+          confiabilidade da loja — nunca comissão.
+        </p>
+      </header>
+      <nav className="segmented" aria-label="Ordenar">
         {SORTS.map((s) => (
-          <Link key={s.key} className="chip" aria-current={s.key === sort} href={s.key === "opportunity" ? "/ofertas" : `/ofertas?ordem=${s.key}`} rel="nofollow">{s.label}</Link>
+          <Link key={s.key} aria-current={s.key === sort} href={s.key === "opportunity" ? "/ofertas" : `/ofertas?ordem=${s.key}`} rel="nofollow">{s.label}</Link>
         ))}
       </nav>
-      <div className="table-scroll" style={{ marginTop: 16 }}>
-        <table>
-          <thead><tr><th>Produto</th><th>Preço</th><th>Desconto real</th><th>Anunciado</th><th>7 dias</th><th>Nota</th><th><span className="sr-only">Ação</span></th></tr></thead>
-          <tbody>
-            {deals.map(({ product: p, variant: v }) => (
-              <tr key={v.id}>
-                <td><Link href={`${p.url}?v=${v.slug}`}>{p.name}</Link><br /><span className="small muted">{v.label} · {v.best!.merchantName}</span></td>
-                <td><strong>{money(v.best!.total)}</strong><br /><PriceBadge verdict={v.verdict} /></td>
-                <td>{v.realDiscount != null && v.realDiscount > 0 ? pct(v.realDiscount) : "—"}</td>
-                <td className="small">{v.advertisedDiscount ? <>{pct(v.advertisedDiscount)}{v.misleadingDiscount && <><br /><span className="badge high">exagerado</span></>}</> : "—"}</td>
-                <td className="small">{pct(v.stats.change["7d"], true)}</td>
-                <td>{score(p.scores.overall)}</td>
-                <td><a className="btn btn-ghost btn-sm" href={`/go/${p.slug}/${v.best!.merchantSlug}?v=${v.slug}&cta=deal_card`} rel="sponsored nofollow">Ver oferta</a></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {deals.length === 0 && <p>Nenhuma oferta abaixo da mediana agora. <Link href="/ofertas?ordem=price">Ver por menor preço</Link>.</p>}
+      {deals.length > 0 ? (
+        <div className="data-table stacked mt4">
+          <table>
+            <thead><tr><th>Produto</th><th>Preço</th><th>Desconto real</th><th>Anunciado</th><th>7 dias</th><th>Nota</th><th><span className="sr-only">Ação</span></th></tr></thead>
+            <tbody>
+              {deals.map(({ product: p, variant: v }) => (
+                <tr key={v.id}>
+                  <td className="cell-title"><Link href={`${p.url}?v=${v.slug}`}>{p.name}</Link><small>{v.label} · {v.best!.merchantName}</small></td>
+                  <td data-label="Preço"><strong className="num">{money(v.best!.total)}</strong><br /><PriceBadge verdict={v.verdict} /></td>
+                  <td data-label="Desconto real">{v.realDiscount != null && v.realDiscount > 0 ? <strong className="num down">{pct(v.realDiscount)}</strong> : "—"}</td>
+                  <td data-label="Anunciado" className="small">{v.advertisedDiscount ? <>{pct(v.advertisedDiscount)}{v.misleadingDiscount && <><br /><span className="badge high">exagerado</span></>}</> : "—"}</td>
+                  <td data-label="7 dias" className="small num">{pct(v.stats.change["7d"], true)}</td>
+                  <td data-label="Nota"><ScoreRing value={p.scores.overall} size="sm" /></td>
+                  <td className="action"><a className="btn btn-primary btn-sm" href={`/go/${p.slug}/${v.best!.merchantSlug}?v=${v.slug}&cta=deal_card`} rel="sponsored nofollow">Ver oferta</a></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="empty mt4"><strong>Nenhuma oferta abaixo da mediana agora.</strong><Link href="/ofertas?ordem=price">Ver por menor preço</Link></div>
+      )}
+      <p className="disclosure mt4"><Icon name="info" /> Podemos receber comissão por compras feitas pelos links. Isso não muda a ordem nem as notas.</p>
     </>
   );
 }

@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "Minha conta", robots: { index: false
 export default async function AccountPage({ searchParams }: { searchParams: Promise<{ enviado?: string; expirado?: string; excluido?: string }> }) {
   const sp = await searchParams;
   return (
-    <section style={{ maxWidth: 560, marginTop: 32 }}>
+    <section className="form-page">
       <h1>Minha conta</h1>
       {sp.enviado && <p className="flash ok" role="status">Se houver uma conta com este e-mail, você receberá um link de acesso em instantes.</p>}
       {sp.expirado && <p className="flash erro" role="alert">O link expirou. Peça um novo abaixo.</p>}

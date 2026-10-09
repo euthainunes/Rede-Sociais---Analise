@@ -6,8 +6,11 @@ export const metadata: Metadata = { title: "Privacidade", alternates: { canonica
 
 export default function Privacy() {
   return (
-    <article>
-      <h1>Privacidade</h1>
+    <article className="prose">
+      <header className="page-head">
+        <span className="eyebrow">Seus dados</span>
+        <h1>Privacidade</h1>
+      </header>
       <p className="notice">Versão preliminar — o texto final será revisado pelo jurídico antes do lançamento (docs/anexo-a).</p>
       <h2>O que coletamos</h2>
       <ul>

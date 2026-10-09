@@ -19,6 +19,12 @@ export function PriceChart({ series, days, label }: { series: DailyPrice[]; days
   return (
     <svg className="chart" viewBox={`0 0 ${W} ${H}`} role="img"
       aria-label={`${label}: de ${money(data[0]!.min)} em ${dateBR(data[0]!.day)} a ${money(data.at(-1)!.min)} hoje; mínimo ${money(min)}, máximo ${money(max)}.`}>
+      <defs>
+        <linearGradient id="chart-fill" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0" stopColor="var(--brand)" stopOpacity=".18" />
+          <stop offset="1" stopColor="var(--brand)" stopOpacity="0" />
+        </linearGradient>
+      </defs>
       {ticks.map((t) => (
         <g key={t}>
           <line className="grid" x1={P.l} x2={W - P.r} y1={y(t)} y2={y(t)} />
@@ -26,8 +32,9 @@ export function PriceChart({ series, days, label }: { series: DailyPrice[]; days
         </g>
       ))}
       <line className="median" x1={P.l} x2={W - P.r} y1={y(med)} y2={y(med)} />
+      <polygon className="area" points={`${x(0).toFixed(1)},${H - P.b} ${pts} ${x(data.length - 1).toFixed(1)},${H - P.b}`} />
       <polyline className="line" points={pts} />
-      <circle cx={x(data.length - 1)} cy={y(data.at(-1)!.min)} r="4" fill="var(--brand)" />
+      <circle cx={x(data.length - 1)} cy={y(data.at(-1)!.min)} r="5" fill="var(--brand)" stroke="var(--surface)" strokeWidth="2" />
       <text className="axis" x={P.l} y={H - 8}>{dateBR(data[0]!.day)}</text>
       <text className="axis" x={W - P.r} y={H - 8} textAnchor="end">hoje</text>
     </svg>

@@ -6,9 +6,12 @@ export const metadata: Metadata = { title: "Como ganhamos dinheiro", alternates:
 
 export default function HowWeEarn() {
   return (
-    <article>
-      <h1>Como ganhamos dinheiro</h1>
-      <p>O {brand.name} é gratuito para você. Quando você clica em “Ver oferta” e compra numa loja parceira, a loja pode nos pagar uma comissão. O preço para você é o mesmo.</p>
+    <article className="prose">
+      <header className="page-head">
+        <span className="eyebrow">Transparência</span>
+        <h1>Como ganhamos dinheiro</h1>
+      </header>
+      <p className="lead">O {brand.name} é gratuito para você. Quando você clica em “Ver oferta” e compra numa loja parceira, a loja pode nos pagar uma comissão. O preço para você é o mesmo.</p>
       <h2>A comissão não decide a recomendação</h2>
       <ul>
         <li>As notas são calculadas pela <Link href="/metodologia/celulares">metodologia pública</Link>, a partir de especificações e testes.</li>

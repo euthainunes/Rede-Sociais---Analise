@@ -11,7 +11,7 @@ export default async function ConfirmAlert({ searchParams }: { searchParams: Pro
   const sql = getSql();
   const r = sql && t ? await confirmAlert(sql, t) : null;
   return (
-    <section style={{ maxWidth: 560, marginTop: 32 }}>
+    <section className="form-page">
       {r ? (
         <>
           <h1>Alerta ativado ✅</h1>

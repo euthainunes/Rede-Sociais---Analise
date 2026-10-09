@@ -5,6 +5,7 @@
  */
 import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Icon } from "./Icon";
 
 type Item = { kind: "product" | "category" | "brand" | "guide"; label: string; url: string; hint?: string };
 
@@ -65,6 +66,7 @@ export function SearchBox() {
   return (
     <form action="/buscar" className="search" role="search" onSubmit={() => setOpen(false)}>
       <label htmlFor="q" className="sr-only">Buscar</label>
+      <Icon name="search" className="search-icon" />
       <input
         id="q" name="q" type="search" placeholder="Ex.: celular bom para fotos até 3 mil" autoComplete="off"
         role="combobox" aria-autocomplete="list" aria-expanded={expanded} aria-controls={listId}

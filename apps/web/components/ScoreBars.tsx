@@ -1,5 +1,6 @@
 import type { Methodology, ProductScores } from "@veredito/core";
 import { score } from "@/lib/format";
+import { scoreTier } from "./Score";
 
 export function ScoreBars({ scores, methodology }: { scores: ProductScores; methodology: Methodology }) {
   return (
@@ -10,7 +11,7 @@ export function ScoreBars({ scores, methodology }: { scores: ProductScores; meth
           <div className="bar" key={c.key}>
             <span>{c.label}</span>
             <span className="track" aria-hidden="true">
-              <span className="fill" style={{ width: `${(v ?? 0) * 10}%`, display: "block" }} />
+              <span className={`fill ${scoreTier(v)}`} style={{ width: `${(v ?? 0) * 10}%` }} />
             </span>
             <strong aria-label={`${c.label}: ${v == null ? "sem dados" : score(v)}`}>{score(v)}</strong>
           </div>

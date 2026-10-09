@@ -16,7 +16,7 @@ export default async function NewsletterPage({ searchParams }: { searchParams: P
   const { status } = await searchParams;
   const m = status ? MSG[status] : null;
   return (
-    <section style={{ maxWidth: 560, marginTop: 32 }}>
+    <section className="form-page">
       <h1>Newsletter</h1>
       <p>Uma vez por semana: ofertas com <strong>desconto real</strong> (contra o nosso histórico de preços, não contra o “preço de” da loja) e os guias novos. Sem spam, cancelamento em um clique.</p>
       {m && <p className={`flash ${m[0]}`} role="status">{m[1]}</p>}
@@ -24,7 +24,7 @@ export default async function NewsletterPage({ searchParams }: { searchParams: P
         <input type="hidden" name="origin" value="newsletter_page" />
         <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" style={{ position: "absolute", left: "-9999px" }} />
         <label>E-mail<input type="email" name="email" required autoComplete="email" /></label>
-        <label className="row small" style={{ alignItems: "flex-start" }}><input type="checkbox" name="consent" required /> Quero receber a newsletter por e-mail. Posso cancelar quando quiser.</label>
+        <label className="check small"><input type="checkbox" name="consent" required /> Quero receber a newsletter por e-mail. Posso cancelar quando quiser.</label>
         <button className="btn btn-primary" type="submit">Assinar</button>
       </form>
     </section>
