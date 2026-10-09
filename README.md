@@ -49,6 +49,7 @@ ADMIN_PASSWORD='uma-senha-com-12+-caracteres' pnpm --filter @veredito/db create-
 | Produtos | Cadastro e edição com ficha técnica validada pela categoria e proveniência (fonte, URL e confiança por atributo); versões com GTIN; redirect 301 automático quando o endereço muda | admin, editor-chefe, editor, analista |
 | Ofertas e matching | Importação de CSV (planilha ou Awin) → associação automática por GTIN/MPN/título → fila humana para os casos duvidosos; atualiza o histórico de preço do dia | admin, editor-chefe, analista |
 | Conteúdo | Reviews, guias e explicadores com revisões; fluxo Rascunho → Revisão → Aprovado → Publicado → Atualização necessária; publicar indexa no RAG | edita: editores; publica: editor-chefe e admin |
+| Receita | Comissão, pedidos, EPC e % de atribuição exata; "de onde vem o dinheiro" por conteúdo, produto, canal, tipo de página, botão e loja; últimas conversões com a linha do tempo do status; importação de relatórios | admin, comercial |
 | Auditoria | Registro somente de inclusão de toda escrita | admin, editor-chefe |
 
 Segurança: senha (scrypt) + TOTP obrigatório; bloqueio de 15 minutos após 5 falhas; sessão de 8 h com cookie `HttpOnly`/`SameSite=Strict`, cujo hash fica no banco; permissões checadas em toda página e toda ação no servidor; comercial não edita notas e editor não vê comissão.
@@ -74,6 +75,13 @@ pnpm --filter @veredito/worker once check-links # um job específico
 | `maintain-partitions` | diário | Cria as partições mensais de preços, eventos e cliques |
 
 Várias instâncias podem rodar juntas: cada job tem um *lease* no banco, que expira sozinho se o processo cair. Toda execução fica em `ops.job_run` e aparece na visão geral do painel. Preço fora de ±60% da mediana de 90 dias pausa a oferta e abre alerta. O acesso de rede tem proteção contra SSRF: só https e só IPs públicos. Sem servidor dedicado, o workflow `.github/workflows/worker.yml` roda tudo a cada 15 minutos (basta configurar o segredo `WORKER_DATABASE_URL`).
+
+### Vendas, comissões e atribuição
+
+- **Entrada:** relatório CSV no painel (planilha em português ou formato Awin) ou postback das redes em `POST /api/webhooks/networks/<programa>`, com o corpo assinado em HMAC-SHA256 (`x-signature`, segredo `POSTBACK_SECRET_<PROGRAMA>`).
+- **Idempotente:** cada (programa, pedido) existe uma vez. Reimportar só atualiza o valor ou o status, e o status só avança (Estimada → Em validação → Aprovada → Faturada → Paga) ou vai para Estornada. Toda mudança fica no histórico.
+- **Atribuição:** com sub-ID (`click_ref`), a venda é do clique exato e herda página, produto, botão e canal. Sem sub-ID (Amazon, por exemplo), a venda é dividida igualmente entre os cliques válidos do mesmo programa na janela do cookie. Cliques de robôs nunca recebem venda.
+- **Firewall comercial:** tudo isso é visível só para administrador e comercial; no banco, os papéis de ranking e editorial não leem essas tabelas.
 
 ### Alertas de preço e newsletter
 

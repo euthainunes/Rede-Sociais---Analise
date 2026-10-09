@@ -17,6 +17,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
         <Link href="/admin/produtos">Produtos</Link>
         {can(staff.role, "offers:write") && <Link href="/admin/ofertas">Ofertas e matching</Link>}
         <Link href="/admin/conteudo">Conteúdo</Link>
+        {can(staff.role, "commission:read") && <Link href="/admin/receita">Receita</Link>}
         {can(staff.role, "staff:manage") && <Link href="/admin/emails">E-mails</Link>}
         {can(staff.role, "audit:read") && <Link href="/admin/auditoria">Auditoria</Link>}
         <Link href="/" target="_blank">Ver site ↗</Link>

@@ -15,6 +15,7 @@ import {
 } from "@veredito/db/admin";
 import { addFeedSource, setFeedSourceActive } from "@veredito/db/jobs";
 import { resolveAlert } from "@veredito/db/admin";
+import { importConversions, type ConversionFormat } from "@veredito/db/commerce";
 import { ADMIN_COOKIE, adminSql, errorMessage, parseSections, requestFingerprint, requireStaff } from "@/lib/admin";
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
@@ -196,4 +197,18 @@ export async function resolveAlertAction(form: FormData) {
   const { sql } = await requireStaff("offers:write");
   await resolveAlert(sql, str(form, "id"));
   redirect(back("/admin", "ok", "Alerta marcado como resolvido."));
+}
+
+export async function importConversionsAction(form: FormData) {
+  const { staff, sql } = await requireStaff("commission:read");
+  const file = form.get("file");
+  const content = file instanceof File && file.size > 0 ? await file.text() : String(form.get("content") ?? "");
+  let msg: string;
+  try {
+    const s = await importConversions(sql, staff, { programKey: str(form, "programKey"), format: (str(form, "format") || "planilha") as ConversionFormat, content });
+    msg = `${s.total} linhas: ${s.created} novas, ${s.updated} atualizadas, ${s.unchanged} sem mudança, ${s.invalid} inválidas.`;
+  } catch (e) {
+    redirect(back("/admin/receita", "erro", errorMessage(e)));
+  }
+  redirect(back("/admin/receita", "ok", msg));
 }

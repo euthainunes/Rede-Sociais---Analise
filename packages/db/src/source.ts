@@ -223,9 +223,9 @@ export function createPgSource(sql: Sql, opts: { today?: () => string } = {}): D
     recordClick: async (c) => {
       await sql`
         INSERT INTO analytics.click (click_ref, ts, session_id, anon_id, offer_id, product_id, variant_id, merchant_id,
-          source_path, page_type, cta_id, position, utm, device, price_shown, is_bot)
+          source_path, page_type, cta_id, position, utm, device, price_shown, is_bot, program_key)
         VALUES (${c.clickRef}, ${c.ts}, ${c.sessionId}, ${c.anonId}, ${c.offerId}, ${c.productId}, ${c.variantId}, ${c.merchantId},
-          ${c.sourcePath}, ${c.pageType}, ${c.ctaId}, ${c.position}, ${sql.json(c.utm)}, ${c.device}, ${c.priceShown}, ${c.isBot})`;
+          ${c.sourcePath}, ${c.pageType}, ${c.ctaId}, ${c.position}, ${sql.json(c.utm)}, ${c.device}, ${c.priceShown}, ${c.isBot}, ${c.programKey})`;
     },
     recordEvents: async (events, ctx) => {
       if (events.length === 0) return;
