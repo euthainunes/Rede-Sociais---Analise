@@ -20,7 +20,7 @@ export default async function Manage({ searchParams }: { searchParams: Promise<{
   if (!acc) redirect("/conta?expirado=1");
   const t = sp.t!;
   return (
-    <section style={{ maxWidth: 760, marginTop: 32 }}>
+    <section className="page-head manage">
       <h1>Gerenciar conta</h1>
       <p className="muted">{acc.person.email}</p>
       {sp.ok === "alerta" && <p className="flash ok">Alerta cancelado.</p>}
@@ -29,7 +29,7 @@ export default async function Manage({ searchParams }: { searchParams: Promise<{
 
       <h2>Alertas</h2>
       {acc.alerts.length === 0 && <p className="muted">Nenhum alerta.</p>}
-      <table><tbody>
+      <div className="data-table"><table><tbody>
         {acc.alerts.map((a) => (
           <tr key={a.id}>
             <td><Link href={a.path}>{a.product}</Link>{a.variant && <span className="small muted"> · {a.variant}</span>}<br />
@@ -39,7 +39,7 @@ export default async function Manage({ searchParams }: { searchParams: Promise<{
             )}</td>
           </tr>
         ))}
-      </tbody></table>
+      </tbody></table></div>
 
       <h2>Newsletter</h2>
       <p>Situação: <strong>{acc.person.newsletter_status === "subscribed" ? "inscrito" : acc.person.newsletter_status === "pending" ? "aguardando confirmação" : "não inscrito"}</strong></p>
@@ -49,8 +49,8 @@ export default async function Manage({ searchParams }: { searchParams: Promise<{
       <p><a className="btn btn-ghost btn-sm" href={`/api/conta/exportar?t=${encodeURIComponent(t)}`}>Baixar meus dados (JSON)</a></p>
       <form action={deleteAccountAction} className="stack card">
         <input type="hidden" name="t" value={t} />
-        <label className="row small"><input type="checkbox" name="confirm" /> Entendo que meus alertas e dados serão excluídos definitivamente.</label>
-        <button className="btn btn-ghost btn-sm" type="submit">Excluir meus dados</button>
+        <label className="check small"><input type="checkbox" name="confirm" /> Entendo que meus alertas e dados serão excluídos definitivamente.</label>
+        <button className="btn btn-danger btn-sm" type="submit">Excluir meus dados</button>
       </form>
     </section>
   );

@@ -21,12 +21,15 @@ export default async function MethodologyPage({ params }: Props) {
   const content = (await catalog().listContent("methodology")).find((c) => c.path === `/metodologia/${slug}`);
   const attrLabel = new Map(cfg.attributes.map((a) => [a.key, a.label]));
   return (
-    <article>
-      <h1>Como avaliamos {cfg.name.toLowerCase()}</h1>
-      <p className="muted">Metodologia {cfg.methodology.version}. Mudanças são versionadas e todas as notas são recalculadas.</p>
-      {content?.sections.map((s) => <section key={s.heading}><h2>{s.heading}</h2><p>{s.text}</p></section>)}
+    <article className="prose-page">
+      <header className="page-head">
+        <span className="eyebrow">Transparência</span>
+        <h1>Como avaliamos {cfg.name.toLowerCase()}</h1>
+        <p className="lead">Metodologia {cfg.methodology.version}. Mudanças são versionadas e todas as notas são recalculadas.</p>
+      </header>
+      <div className="prose">{content?.sections.map((s) => <section key={s.heading}><h2>{s.heading}</h2><p>{s.text}</p></section>)}</div>
       <h2>Critérios, pesos e insumos</h2>
-      <div className="table-scroll">
+      <div className="table-scroll data-table">
         <table>
           <thead><tr><th>Critério</th><th>Peso</th><th>O que medimos</th></tr></thead>
           <tbody>
@@ -44,16 +47,19 @@ export default async function MethodologyPage({ params }: Props) {
           </tbody>
         </table>
       </div>
-      <p>Ajuste editorial máximo por critério: ±{cfg.methodology.editorialAdjustMax.toString().replace(".", ",")} ponto, sempre com justificativa publicada na review.</p>
+      <p className="mt4">Ajuste editorial máximo por critério: ±{cfg.methodology.editorialAdjustMax.toString().replace(".", ",")} ponto, sempre com justificativa publicada na review.</p>
     </article>
   );
 }
 
 function PriceMethodology() {
   return (
-    <article>
-      <h1>Como analisamos preços</h1>
-      <p className="muted">Metodologia de preço {PRICE_METHODOLOGY_VERSION}.</p>
+    <article className="prose">
+      <header className="page-head">
+        <span className="eyebrow">Transparência</span>
+        <h1>Como analisamos preços</h1>
+        <p className="lead">Metodologia de preço {PRICE_METHODOLOGY_VERSION}.</p>
+      </header>
       <p>Coletamos o preço à vista de cada oferta várias vezes ao dia e guardamos o menor preço diário entre lojas confiáveis de cada versão (armazenamento e cor). Preços com variação anormal são marcados como erro e ficam fora das estatísticas.</p>
       <h2>Classificação</h2>
       <ul>

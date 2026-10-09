@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import type { UserProfile } from "@veredito/core";
 import { celulares } from "@veredito/core";
+import { Icon } from "@/components/Icon";
 import { PriceBadge } from "@/components/PriceBadge";
+import { ScoreRing } from "@/components/Score";
 import { advise } from "@/lib/advisor";
 import { money, score } from "@/lib/format";
 
@@ -49,55 +51,32 @@ export default async function AdvisorPage({ searchParams }: Props) {
 
   return (
     <>
-      <h1>Qual celular faz sentido para você?</h1>
-      <p className="muted">As recomendações são escolhidas pelo nosso Fit Score — sem considerar comissão. O texto explica o porquê com dados da nossa base.</p>
+      <header className="page-head">
+        <span className="eyebrow"><Icon name="sparkle" /> Consultor</span>
+        <h1>Qual celular faz sentido <mark>para você?</mark></h1>
+        <p className="lead">As recomendações são escolhidas pelo nosso Fit Score — sem considerar comissão. O texto explica o porquê com dados da nossa base.</p>
+      </header>
 
-      <form method="get" className="stack" style={{ marginTop: 16 }}>
-        <label>Descreva o que procura (opcional)
-          <input type="text" name="q" defaultValue={q} placeholder="Ex.: quero tirar boas fotos e não gastar mais de 3 mil" />
-        </label>
-        {celulares.advisorQuestions.map((qq) => {
-          const name = qq.key === "use" ? "uso" : qq.key;
-          return (
-            <fieldset key={qq.key}>
-              <legend>{qq.question}</legend>
-              <div className="row">
-                {qq.options.map((o) => (
-                  <label key={o.key} className="chip" style={{ display: "inline-flex", gap: 6 }}>
-                    <input type={qq.multi ? "checkbox" : "radio"} name={name} value={o.key} defaultChecked={selected(name, o.key)} /> {o.label}
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-          );
-        })}
-        <button className="btn btn-primary" type="submit">Ver recomendação</button>
-      </form>
-
-      {result?.status === "needs_input" && (
-        <p className="soft" style={{ marginTop: 16 }}>Para recomendar bem, responda também: {result.questions.map((x) => x.question).join(" · ")}</p>
-      )}
-      {result?.status === "no_match" && (
-        <p className="soft" style={{ marginTop: 16 }}>Nenhum modelo atende a tudo isso ({result.reasons.slice(0, 3).join(", ")}). Tente aumentar o orçamento ou relaxar uma restrição.</p>
-      )}
       {result?.status === "ok" && (
-        <section style={{ marginTop: 24 }} aria-live="polite">
-          <h2>Resultado</h2>
-          <div className="grid">
+        <section aria-live="polite" aria-labelledby="h-resultado">
+          <h2 id="h-resultado" className="mt0">Resultado</h2>
+          <div className="picks">
             {result.picks.map((p) => (
-              <article key={p.role} className="card pcard">
-                <span className="badge">{ROLE[p.role]}</span>
-                <h3><Link href={p.product.url}>{p.product.name}</Link></h3>
-                <p className="small">Fit para você: <strong>{score(p.fit)}</strong> · nota geral {score(p.product.scores.overall)}</p>
+              <article key={p.role} className={`card pick${p.role === "best" ? " best" : ""}`}>
+                <span className={`badge ${p.role === "best" ? "pick" : "brand"}`}>{ROLE[p.role]}</span>
+                <div className="score-block">
+                  <ScoreRing value={p.fit} label="Fit para você" />
+                  <div><h3><Link href={p.product.url}>{p.product.name}</Link></h3><small>Fit para você · nota geral {score(p.product.scores.overall)}</small></div>
+                </div>
                 <p className="row"><span className="price">{money(p.product.bestPrice)}</span><PriceBadge verdict={p.product.priceVerdict} /></p>
                 <p className="small muted">{p.reasons[0]}</p>
-                <a className="btn btn-primary btn-sm" href={`/go/${p.product.slug}/melhor?cta=advisor_result`} rel="sponsored nofollow">Ver oferta</a>
+                <a className={`btn btn-sm ${p.role === "best" ? "btn-mark" : "btn-primary"}`} href={`/go/${p.product.slug}/melhor?cta=advisor_result`} rel="sponsored nofollow">Ver oferta</a>
               </article>
             ))}
           </div>
-          <h3 style={{ marginTop: 24 }}>Por quê</h3>
-          <div className="soft" style={{ whiteSpace: "pre-line" }}>{result.explanation.text}</div>
-          {result.avoid && <p className="small"><strong>O que eu evitaria:</strong> {result.avoid.product.name} — {result.avoid.reasons.join(", ")}.</p>}
+          <h3 className="mt5">Por quê</h3>
+          <div className="why">{result.explanation.text}</div>
+          {result.avoid && <p className="notice mt4"><strong>O que eu evitaria:</strong> {result.avoid.product.name} — {result.avoid.reasons.join(", ")}.</p>}
           {result.sources.length > 0 && (
             <p className="small muted">Fontes: {result.sources.map((s, i) => <span key={s.url}>{i > 0 && " · "}<Link href={s.url}>{s.title}</Link></span>)}</p>
           )}
@@ -105,8 +84,37 @@ export default async function AdvisorPage({ searchParams }: Props) {
             {result.explanation.mode === "llm" ? "Explicação redigida por IA e verificada contra os dados da base." : "Explicação gerada a partir das notas (modo sem IA)."}{" "}
             <Link href={`/comparar?p=${result.picks.slice(0, 3).map((p) => p.product.slug).join(",")}`} rel="nofollow">Comparar estas opções</Link>
           </p>
+          <h2>Ajustar respostas</h2>
         </section>
       )}
+      {result?.status === "needs_input" && (
+        <p className="notice">Para recomendar bem, responda também: {result.questions.map((x) => x.question).join(" · ")}</p>
+      )}
+      {result?.status === "no_match" && (
+        <p className="flash erro">Nenhum modelo atende a tudo isso ({result.reasons.slice(0, 3).join(", ")}). Tente aumentar o orçamento ou relaxar uma restrição.</p>
+      )}
+
+      <form method="get" className="advisor-form">
+        <label className="q-step">Descreva o que procura (opcional)
+          <input type="text" name="q" defaultValue={q} placeholder="Ex.: quero tirar boas fotos e não gastar mais de 3 mil" />
+        </label>
+        {celulares.advisorQuestions.map((qq, i) => {
+          const name = qq.key === "use" ? "uso" : qq.key;
+          return (
+            <fieldset key={qq.key} className="q-step">
+              <legend><span className="n" aria-hidden="true">{i + 1}</span>{qq.question}{qq.multi && <span className="small muted">(pode marcar mais de uma)</span>}</legend>
+              <div className="options">
+                {qq.options.map((o) => (
+                  <label key={o.key} className="option">
+                    <input type={qq.multi ? "checkbox" : "radio"} name={name} value={o.key} defaultChecked={selected(name, o.key)} /> {o.label}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          );
+        })}
+        <div className="advisor-submit"><button className="btn btn-primary" type="submit">Ver recomendação <Icon name="arrow" /></button></div>
+      </form>
     </>
   );
 }

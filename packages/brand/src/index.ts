@@ -21,8 +21,10 @@ export const brand = {
     pinterest: null as string | null,
   },
   colors: {
-    brand: "#1f5eff",
+    brand: "#2346ff", // ação (botões, links)
     brandInk: "#ffffff",
+    ink: "#0e1222", // tinta: texto e superfícies de destaque
+    mark: "#d4ff3f", // marca-texto: a resposta (nossa escolha, o número que importa)
   },
 } as const;
 

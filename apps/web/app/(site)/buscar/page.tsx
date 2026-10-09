@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { intentToProfile, parseIntent, productSignals } from "@veredito/ai";
 import { criterionLabels, defaultWeights, getCategory, rankByFit } from "@veredito/core";
+import { Icon } from "@/components/Icon";
 import { ProductCard } from "@/components/ProductCard";
 import { searchContent } from "@/lib/advisor";
 import { catalog } from "@/lib/data";
@@ -53,17 +54,34 @@ export default async function SearchPage({ searchParams }: Props) {
 
   return (
     <>
-      <h1>{q ? `Resultados para “${q}”` : "Busca"}</h1>
-      {q && <p className="soft small">Entendemos: {understood.join(" · ")}. <Link href={`/consultor?q=${encodeURIComponent(q)}`}>Refinar com o consultor →</Link></p>}
+      <header className="page-head">
+        <span className="eyebrow"><Icon name="search" /> Busca</span>
+        <h1>{q ? `Resultados para “${q}”` : "Busca"}</h1>
+        {q && (
+          <div className="understood">
+            <span className="small muted">Entendemos:</span>
+            {understood.map((u) => <span key={u} className="badge brand">{u}</span>)}
+            <Link className="more small" href={`/consultor?q=${encodeURIComponent(q)}`}>Refinar com o consultor <Icon name="arrow" /></Link>
+          </div>
+        )}
+        {!q && (
+          <form action="/buscar" className="search search-lg search-page mt4" role="search">
+            <label htmlFor="q-page" className="sr-only">Buscar</label>
+            <Icon name="search" className="search-icon" />
+            <input id="q-page" name="q" type="search" placeholder="Ex.: celular bom para fotos até 3 mil" />
+            <button type="submit">Buscar</button>
+          </form>
+        )}
+      </header>
       {noMatch && <p className="notice">Não encontramos nada específico para essa busca. Abaixo, os celulares mais bem avaliados no geral.</p>}
       {hits.length > 0 && (
         <section aria-labelledby="conteudo-relacionado">
-          <h2 id="conteudo-relacionado">Guias e análises sobre isso</h2>
+          <h2 id="conteudo-relacionado" className="mt0">Guias e análises sobre isso</h2>
           <ul className="search-hits">
             {hits.map((h) => (
               <li key={h.documentId}>
                 <span className="badge">{DOC_TYPE_LABELS[h.docType] ?? h.docType}</span>{" "}
-                <Link href={h.url}><strong>{h.title}</strong></Link>
+                <Link href={h.url}>{h.title}</Link>
                 {h.heading && h.heading !== h.title && <span className="muted small"> · {h.heading.split(" › ").pop()}</span>}
                 <p className="small">{h.snippet}</p>
               </li>
@@ -73,13 +91,13 @@ export default async function SearchPage({ searchParams }: Props) {
       )}
       {featured && (
         <section>
-          <h2>Para essa busca, recomendamos</h2>
-          <div className="grid">{results.slice(0, 3).map((p, i) => <ProductCard key={p.id} p={p} highlight={i === 0 ? "Mais indicado" : undefined} />)}</div>
+          <h2 className="mt0">Para essa busca, recomendamos</h2>
+          <div className="grid">{results.slice(0, 3).map((p, i) => <ProductCard key={p.id} p={p} highlight={i === 0 ? "Mais indicado" : undefined} pick={i === 0} />)}</div>
           <h2>Outras opções</h2>
         </section>
       )}
       <div className="grid">{results.slice(featured ? 3 : 0).map((p) => <ProductCard key={p.id} p={p} />)}</div>
-      {results.length === 0 && <p>Nada encontrado com esses critérios. Tente aumentar o orçamento ou <Link href="/celulares">ver todos os celulares</Link>.</p>}
+      {results.length === 0 && <div className="empty"><strong>Nada encontrado com esses critérios.</strong>Tente aumentar o orçamento ou <Link href="/celulares">ver todos os celulares</Link>.</div>}
     </>
   );
 }
