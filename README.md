@@ -3,7 +3,7 @@
 
 Jogo de plataforma 2D satírico. Você é o **Patrício**, um patriota de grupo de Zap com uma missão: **soltar o Jair**. Cada fase começa com uma fake news em que ele acredita e termina na **Checagem**, que mostra o fato real com a fonte.
 
-**Estado atual:** 2 de 7 fases jogáveis, ligadas por um **mapa** até Brasília, com efeitos sonoros. As fases são **1. Acampamento do Quartel** e **2. A Urna Fraudada**. O progresso fica salvo no aparelho.
+**Estado atual:** 3 de 7 fases jogáveis, ligadas por um **mapa** até Brasília, com efeitos sonoros. As fases são **1. Acampamento do Quartel**, **2. A Urna Fraudada** e **3. A Fábrica de Chocolate**. O progresso fica salvo no aparelho.
 
 ![Fase 1](docs/jogo/missao-entrega.png)
 
@@ -13,7 +13,7 @@ Jogo de plataforma 2D satírico. Você é o **Patrício**, um patriota de grupo 
 python3 -m http.server 8000   # na raiz do repositório
 # abrir http://localhost:8000          → Operação Liberta o Mito
 # abrir http://localhost:8000/?jogar   → pula direto para a fase
-# abrir http://localhost:8000/?jogar&fase=2 → pula direto para a fase 2
+# abrir http://localhost:8000/?jogar&fase=3 → pula direto para a fase 3 (ou 1, 2)
 # abrir http://localhost:8000/classico.html → protótipo antigo (Capitão × L-Livre)
 ```
 
@@ -56,6 +56,24 @@ python3 -m http.server 8000   # na raiz do repositório
   - [Poder360 (inelegibilidade)](https://www.poder360.com.br/justica/tse-forma-maioria-pela-inelegibilidade-de-bolsonaro/)
   - [Poder360 (ação do PL)](https://www.poder360.com.br/eleicoes/moraes-rejeita-pedido-para-invalidar-votos-e-multa-pl-em-r-22-milhoes/)
 
+### Fase 3: A Fábrica de Chocolate
+
+![Fase 3](docs/jogo/fase3-flagra.png)
+
+- **Fake news:** "Nunca houve investigação, é invenção da mídia."
+- **Objetivo:** recolher notinhas (cabem 5 no bolso) e fazer **12 depósitos** nas caixas de "boca do caixa". Depois, chegar à **mansão**.
+- **Fiscal:** tem **campo de visão**. Depositar na frente dele faz perder as notinhas e um pouco de Fé. Pisar nele o deixa atordoado e sem enxergar.
+- **Esteiras rolantes:** empurram quem está em cima.
+- **Checagem:** separa **ACUSAÇÃO** e **STATUS**.
+  - Acusação: denúncia do MP-RJ de 2020.
+  - Status: provas anuladas pelo STJ/STF em 2021 e caso arquivado pelo TJ-RJ em 2022, sem condenação; Flávio nega irregularidades.
+  - Fato: mansão de ~R$ 6 milhões financiada pelo BRB, com as condições do empréstimo sob apuração da PF; ele nega.
+- Fontes:
+  - [ConJur](https://conjur.com.br/2020-nov-04/mp-denuncia-flavio-bolsonaro-esquema-rachadinha-alerj/)
+  - [CNN Brasil](https://www.cnnbrasil.com.br/politica/stj-anula-decisoes-contra-flavio-bolsonaro-no-caso-das-rachadinhas/)
+  - [Agência Brasil](https://agenciabrasil.ebc.com.br/politica/noticia/2022-05/justica-do-rio-arquiva-processo-de-caso-de-supostas-rachadinhas)
+  - [Diário de Pernambuco](https://www.diariodepernambuco.com.br/politica/2026/10/11725606-pf-apura-condicoes-de-financiamento-do-brb-a-flavio-bolsonaro-para-mansao-de-rs-6-milhoes.html)
+
 ### Fontes da Checagem da fase 1
 
 - [Poder360: acampamentos desfeitos no país](https://www.poder360.com.br/brasil/acampamentos-de-extremistas-de-direita-sao-desfeitos-no-pais/)
@@ -63,7 +81,7 @@ python3 -m http.server 8000   # na raiz do repositório
 - [Poder360: STF condenou 835 pelo 8 de Janeiro](https://www.poder360.com.br/poder-justica/depois-de-3-anos-stf-condenou-810-envolvidos-no-8-de-janeiro/)
 - [TSE: relatório de transparência eleitoral 2022](https://www.tse.jus.br/eleicoes/eleicoes-2022/arquivos/transparencia-eleitoral-brasil)
 
-Testes das regras (Node 18+): `npm test`. Inclui um robô que conclui as fases 1 e 2 só com as entradas normais.
+Testes das regras (Node 18+): `npm test`. Inclui um robô que conclui as fases 1, 2 e 3 só com as entradas normais.
 
 > Sátira. Feito com auxílio de IA. Personagens são caricaturas; fatos com fonte na tela de Checagem.
 

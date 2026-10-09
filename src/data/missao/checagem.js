@@ -37,6 +37,23 @@ CHECAGEM.urnas = {
   ],
 };
 
+CHECAGEM.chocolate = {
+  titulo: 'CHECAGEM - FASE 3: A FÁBRICA DE CHOCOLATE',
+  itens: [
+    { tag: 'FAKE', texto: '"NUNCA HOUVE INVESTIGAÇÃO, É INVENÇÃO DA MÍDIA." HOUVE INVESTIGAÇÃO E DENÚNCIA FORMAL.' },
+    { tag: 'ACUSAÇÃO', texto: 'O MP-RJ DENUNCIOU FLÁVIO (NOV/2020) POR "RACHADINHA" NA ALERJ. PARA O MP, UMA LOJA DE CHOCOLATES DA QUAL ERA SÓCIO TERIA SIDO USADA PARA LAVAR DINHEIRO EM ESPÉCIE.' },
+    { tag: 'STATUS', texto: 'STJ E STF ANULARAM PROVAS (NOV/2021) E O TJ-RJ ARQUIVOU A DENÚNCIA (MAI/2022). NÃO HÁ CONDENAÇÃO. FLÁVIO NEGA QUALQUER IRREGULARIDADE.' },
+    { tag: 'FATO', texto: 'MANSÃO DE CERCA DE R$ 6 MILHÕES EM BRASÍLIA, COM FINANCIAMENTO DE R$ 3,1 MILHÕES DO BRB (2021). A PF APURA AS CONDIÇÕES DO EMPRÉSTIMO; ELE NEGA IRREGULARIDADE.' },
+    { tag: 'PIADA', texto: 'AS NOTINHAS, O FISCAL QUE ENXERGA LONGE E OS DEPÓSITOS AOS POUQUINHOS DESTE JOGO SÃO FICÇÃO.' },
+  ],
+  fontes: [
+    { nome: 'ConJur: MP denuncia Flávio Bolsonaro por esquema na Alerj (2020)', url: 'https://conjur.com.br/2020-nov-04/mp-denuncia-flavio-bolsonaro-esquema-rachadinha-alerj/' },
+    { nome: 'CNN Brasil: STJ anula decisões contra Flávio', url: 'https://www.cnnbrasil.com.br/politica/stj-anula-decisoes-contra-flavio-bolsonaro-no-caso-das-rachadinhas/' },
+    { nome: 'Agência Brasil: Justiça do Rio arquiva processo (2022)', url: 'https://agenciabrasil.ebc.com.br/politica/noticia/2022-05/justica-do-rio-arquiva-processo-de-caso-de-supostas-rachadinhas' },
+    { nome: 'Diário de Pernambuco: PF apura financiamento da mansão', url: 'https://www.diariodepernambuco.com.br/politica/2026/10/11725606-pf-apura-condicoes-de-financiamento-do-brb-a-flavio-bolsonaro-para-mansao-de-rs-6-milhoes.html' },
+  ],
+};
+
 export const MISSAO_CARD = {
   quartel: {
     remetente: 'GRUPO DA FAMÍLIA',
@@ -49,5 +66,11 @@ export const MISSAO_CARD = {
     texto: 'URGENTE!!! O 01 TEM AS PROVAS: A URNA É FRAUDADA!!! Invada o depósito, dê cabeçada em 10 urnas para achar o CÓDIGO SECRETO e leve tudo até a sala do código-fonte. Cuidado com o Fiscal: ele não muda de ideia.',
     medida: 'URNAS AUDITADAS 0/10',
     controles: '◀ ▶ ANDA · ▲/ESPAÇO PULA (CABEÇADA NA URNA) · X ZAP',
+  },
+  chocolate: {
+    remetente: 'GRUPO DA FAMÍLIA',
+    texto: 'O 01 É UM GÊNIO DOS NEGÓCIOS E A MÍDIA INVENTOU TUDO!!! Prove: recolha as notinhas na fábrica e faça 12 depósitos em espécie, aos pouquinhos, na boca do caixa. Só não deposite na frente do Fiscal. Depois, vá até a mansão. Você não está entendendo nada, mas confia.',
+    medida: 'DEPÓSITOS 0/12 · BOLSO: 5 NOTINHAS',
+    controles: '◀ ▶ ANDA · ▲ PULA (PISAR NO FISCAL O DISTRAI) · X ZAP',
   },
 };

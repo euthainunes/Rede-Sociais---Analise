@@ -3,7 +3,7 @@
 import { TILE } from '../config/constants.js';
 
 const SOLID = new Set(['#', 'B', 'C', 'Q']); // Q = urna gigante (bloco que se abre de baixo)
-const ONE_WAY = new Set(['=']);
+const ONE_WAY = new Set(['=', '>', '<']); // > e < = esteiras rolantes (empurram quem está em cima)
 
 export class TileMap {
   constructor(rows) {

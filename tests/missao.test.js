@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { TileMap } from '../src/core/physics.js';
 import { createEnemy, updateEnemy, convertEnemy, stunEnemy } from '../src/core/enemy.js';
 import { createZap, updateZap, ZAP } from '../src/core/zap.js';
-import { MissaoGame, STATES, createRun } from '../src/game/missao.js';
+import { MissaoGame, STATES, createRun, fiscalSees } from '../src/game/missao.js';
+import { CHOCOLATE } from '../src/data/missao/chocolate.js';
 import { URNAS } from '../src/data/missao/urnas.js';
 import { QUARTEL } from '../src/data/missao/quartel.js';
 import { CHECAGEM, MISSAO_CARD } from '../src/data/missao/checagem.js';
@@ -88,6 +89,7 @@ test('Checagem da fase 1 desmente a fake news e todo fato tem fonte listada', ()
 const LEVELS = [
   { data: QUARTEL, mission: MISSAO_CARD.quartel, checagem: CHECAGEM.quartel },
   { data: URNAS, mission: MISSAO_CARD.urnas, checagem: CHECAGEM.urnas },
+  { data: CHOCOLATE, mission: MISSAO_CARD.chocolate, checagem: CHECAGEM.chocolate },
 ];
 function headlessGame(levelIndex = 0) {
   const g = new MissaoGame(null, { levels: LEVELS, input: { frame: () => ({}) }, startState: 'PLAYING' });
@@ -188,4 +190,76 @@ test('inimigo patrulha só dentro do raio da sua área', () => {
   let minX = Infinity; let maxX = -Infinity;
   for (let i = 0; i < 1200; i++) { updateEnemy(e, STEP, flat); minX = Math.min(minX, e.x); maxX = Math.max(maxX, e.x); }
   assert.ok(minX >= e.homeX - 44 && maxX <= e.homeX + 44, `foi de ${minX} a ${maxX} (casa ${e.homeX})`);
+});
+
+// ---------- fase 3: A Fábrica de Chocolate ----------
+const IDLE = { left: false, right: false, down: false, jumpPressed: false, jumpHeld: false, throwPressed: false };
+
+test('Fiscal só enxerga à frente e na mesma altura; atordoado não vê nada', () => {
+  const f = createEnemy('fiscal', 10 * TILE, 9 * TILE, { convertible: false, dir: 1 });
+  const ahead = { x: f.x + 40, y: f.y, w: 10, h: 22 };
+  const behind = { x: f.x - 40, y: f.y, w: 10, h: 22 };
+  const above = { x: f.x + 40, y: f.y - 60, w: 10, h: 22 };
+  assert.equal(fiscalSees(f, ahead), true);
+  assert.equal(fiscalSees(f, behind), false);
+  assert.equal(fiscalSees(f, above), false);
+  stunEnemy(f);
+  assert.equal(fiscalSees(f, ahead), false);
+});
+
+test('depósito na frente do Fiscal: notinhas confiscadas e Fé abalada; escondido: depósito conta', () => {
+  const g = headlessGame(2);
+  const c = g.caixas[0];
+  const fiscal = g.enemies.find((e) => e.kind === 'fiscal');
+  g.enemies = [fiscal];
+  // Fiscal olhando para a caixa, perto
+  Object.assign(fiscal, { x: c.x - 30, homeX: c.x - 30, range: 999, y: g.player.y, dir: 1, state: 'walk', speed: 0 });
+  Object.assign(g.player, { x: c.x + 4, vx: 0, vy: 0 });
+  g.session.notinhas = 3;
+  g.updatePlaying(IDLE, STEP);
+  assert.equal(g.session.notinhas, 0);
+  assert.equal(g.session.deposited, 0);
+  assert.ok(g.session.fe < 100);
+  // agora de costas
+  fiscal.dir = -1;
+  c.cooldown = 0;
+  g.session.notinhas = 3;
+  g.updatePlaying(IDLE, STEP);
+  assert.equal(g.session.deposited, 3);
+});
+
+test('bolso tem limite de 5 notinhas', () => {
+  const g = headlessGame(2);
+  g.session.notinhas = 5;
+  const n = g.notinhas[0];
+  Object.assign(g.player, { x: n.x + 2, y: n.y + 10, vx: 0, vy: 0 });
+  g.updatePlaying(IDLE, STEP);
+  assert.equal(g.session.notinhas, 5);
+  assert.equal(n.taken, false);
+});
+
+test('esteira rolante empurra o Patrício parado', () => {
+  const g = headlessGame(2);
+  g.enemies = [];
+  // esteira '>' na fileira 8, colunas 34–40
+  Object.assign(g.player, { x: 36 * TILE, y: 8 * TILE - 22, vx: 0, vy: 0, onGround: true });
+  const x0 = g.player.x;
+  for (let i = 0; i < 30; i++) g.updatePlaying(IDLE, STEP);
+  assert.ok(g.player.x > x0 + 15, `andou ${g.player.x - x0}px`);
+});
+
+test('fase 3: notinhas suficientes, caixas de depósito e Checagem com status do caso', () => {
+  const run = createRun(CHOCOLATE);
+  assert.ok(run.notinhas.length >= CHOCOLATE.objective.meta + 2);
+  assert.ok(run.caixas.length >= 4);
+  const c = CHECAGEM.chocolate;
+  assert.ok(c.itens.some((i) => i.tag === 'STATUS' && i.texto.includes('NEGA')), 'acusação precisa vir com status e defesa');
+  assert.ok(c.itens.some((i) => i.tag === 'ACUSAÇÃO'));
+  assert.ok(c.fontes.every((f) => f.url.startsWith('https://')));
+});
+
+test('robô conclui a fase 3: deposita 12 notinhas e chega à mansão', () => {
+  const g = headlessGame(2);
+  botPlay(g, 200);
+  assert.equal(g.fsm.state, 'CHECAGEM', `parou em ${g.fsm.state}, x=${Math.floor(g.player.x / TILE)}, depósitos ${g.session.deposited}, bolso ${g.session.notinhas}, fé ${g.session.fe}, vidas ${g.session.lives}`);
 });

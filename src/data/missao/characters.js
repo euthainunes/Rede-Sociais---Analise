@@ -18,6 +18,8 @@ export const FE = {
   hitZapSelf: 10, // a corrente voltou
   invulnerable: 1.2,
   ammoPickup: 6,
+  hitFlagra: 10, // o Fiscal viu o depósito
+  bolsoMax: 5, // quantas notinhas cabem no bolso
 };
 
 export const SCORE = {
@@ -27,6 +29,7 @@ export const SCORE = {
   marmita: 200,
   pendrive: 300,
   urna: 150,
+  deposito: 100,
   checkpoint: 250,
   complete: 2000,
 };

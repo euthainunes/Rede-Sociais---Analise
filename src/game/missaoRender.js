@@ -15,7 +15,8 @@ import { drawHUDMissao } from '../art/missao/hud.js';
 import { HITBOX } from '../data/characters.js';
 import { TOUCH_BUTTONS } from './input.js';
 import { drawRotate as drawRotateBase } from './render.js';
-import { drawUrnaBloco } from '../art/missao/items.js';
+import { drawUrnaBloco, drawCaixaDeposito } from '../art/missao/items.js';
+import { fiscalSees, FISCAL_VIEW } from './missao.js';
 
 export const drawRotate = drawRotateBase;
 
@@ -50,6 +51,18 @@ function playerFrame(p) {
 }
 
 function drawPortao(ctx, x, groundY, open, label, theme) {
+  if (theme === 'chocolate') {
+    // mansão: fachada clara, porta dupla com detalhes dourados
+    rect(ctx, x - 16, groundY - 70, 80, 70, '#f4efe2');
+    rect(ctx, x - 20, groundY - 74, 88, 6, '#c8a020');
+    for (let i = 0; i < 4; i++) rect(ctx, x - 12 + i * 22, groundY - 66, 4, 66, '#ffffff');
+    rect(ctx, x + 6, groundY - 44, 36, 44, open ? '#3a2410' : '#6b3a1a');
+    rect(ctx, x + 23, groundY - 44, 2, 44, '#c8a020');
+    rect(ctx, x + 19, groundY - 24, 2, 3, '#f5d000'); rect(ctx, x + 27, groundY - 24, 2, 3, '#f5d000');
+    roundRect(ctx, x - 2, groundY - 60, 52, 10, '#c8a020');
+    text(ctx, label, x + 24, groundY - 58, { color: '#3a2410', align: 'center' });
+    return;
+  }
   if (theme === 'galpao') {
     // sala do "código-fonte": porta de servidor com luzinhas
     rect(ctx, x - 8, groundY - 64, 64, 64, '#2a2e38');
@@ -108,7 +121,30 @@ export function renderMissao(ctx, g) {
   for (const d of g.pendrives) if (!d.taken) blit(ctx, M.PENDRIVE, d.x - cx, d.y + bob - cy);
   for (const c of g.chargers) if (!c.taken) blit(ctx, M.CARREGADOR, c.x - cx, c.y - cy);
   const coinFrame = Math.floor(g.time * 5) % 4 === 3 ? 1 : 0;
-  for (const v of L.votes) if (!v.taken) blit(ctx, I.VOTO[coinFrame], v.x - cx, v.y - cy);
+  const coin = level.data.theme === 'chocolate' ? M.BOMBOM : I.VOTO[coinFrame];
+  for (const v of L.votes) if (!v.taken) blit(ctx, coin, v.x - cx, v.y - cy);
+  for (const n of g.notinhas) if (!n.taken) blit(ctx, M.NOTINHA, n.drawX - cx, n.drawY + bob - cy);
+  for (const c of g.caixas) {
+    const canDeposit = s.notinhas > 0 && Math.abs(p.x - c.x) < 64;
+    drawCaixaDeposito(ctx, c.drawX - cx, c.drawY - cy, canDeposit ? 0.5 + 0.5 * Math.sin(g.time * 8) : 0);
+  }
+
+  // campo de visão do Fiscal (vermelho quando está vendo o Patrício)
+  for (const e of g.enemies) {
+    if (e.kind !== 'fiscal' || e.state !== 'walk') continue;
+    const seeing = fiscalSees(e, p);
+    ctx.fillStyle = seeing ? 'rgba(255,64,64,0.28)' : 'rgba(255,235,120,0.18)';
+    const ex = e.dir > 0 ? e.x + e.w : e.x - FISCAL_VIEW.range;
+    ctx.beginPath();
+    const eyeX = (e.dir > 0 ? e.x + e.w : e.x) - cx;
+    const eyeY = e.y + 6 - cy;
+    const farX = (e.dir > 0 ? ex + FISCAL_VIEW.range : ex) - cx;
+    ctx.moveTo(eyeX, eyeY);
+    ctx.lineTo(farX, eyeY - FISCAL_VIEW.height);
+    ctx.lineTo(farX, eyeY + FISCAL_VIEW.height + 6);
+    ctx.closePath();
+    ctx.fill();
+  }
 
   // inimigos
   for (const e of g.enemies) {
@@ -222,7 +258,7 @@ function drawMission(ctx, g) {
   text(ctx, 'OBJETIVO FINAL: SOLTAR O MITO', 52, 185, { color: '#f5d000' });
 }
 
-const TAG_COLORS = { FATO: '#1f9e3a', FAKE: '#c8202f', MEME: '#f5a020', PIADA: '#8a4ad0', ACUSAÇÃO: '#2f80ed' };
+const TAG_COLORS = { FATO: '#1f9e3a', FAKE: '#c8202f', MEME: '#f5a020', PIADA: '#8a4ad0', ACUSAÇÃO: '#2f80ed', STATUS: '#5a6a8a' };
 
 function drawChecagem(ctx, g) {
   const c = g.current.checagem;

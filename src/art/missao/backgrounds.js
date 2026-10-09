@@ -178,7 +178,7 @@ export function chocolate(ctx, w, h, camX = 0) {
   const rx = Math.round(wrap(400 - mid, 600)) - 80;
   rect(ctx, rx, 140, 30, 26, '#5a5a5a');
   rect(ctx, rx + 4, 132, 22, 10, '#3a3a3a');
-  text(ctx, '1512', rx + 15, 134, { color: '#7cf27c', align: 'center' });
+  text(ctx, 'R$', rx + 15, 134, { color: '#7cf27c', align: 'center' });
   const r = rng(3);
   for (let i = 0; i < 6; i++) {
     const nx = rx - 10 + Math.floor(r() * 50);

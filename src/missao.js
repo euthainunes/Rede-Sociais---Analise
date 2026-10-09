@@ -3,6 +3,7 @@
 import { VIEW_W, VIEW_H } from './config/constants.js';
 import { QUARTEL } from './data/missao/quartel.js';
 import { URNAS } from './data/missao/urnas.js';
+import { CHOCOLATE } from './data/missao/chocolate.js';
 import { CHECAGEM, MISSAO_CARD } from './data/missao/checagem.js';
 import { title } from './art/missao/scenes.js';
 import { MissaoGame } from './game/missao.js';
@@ -14,6 +15,7 @@ import { renderMissao, drawRotate } from './game/missaoRender.js';
 export const LEVELS = [
   { data: QUARTEL, mission: MISSAO_CARD.quartel, checagem: CHECAGEM.quartel },
   { data: URNAS, mission: MISSAO_CARD.urnas, checagem: CHECAGEM.urnas },
+  { data: CHOCOLATE, mission: MISSAO_CARD.chocolate, checagem: CHECAGEM.chocolate },
 ];
 
 const canvas = document.getElementById('game');

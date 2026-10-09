@@ -34,6 +34,15 @@ const ENEMY_KINDS = {
   G: { kind: 'fiscal', speed: 30, convertible: false },
 };
 const URNA_LABELS = ['VAZIA', 'SÓ VOTO', '0 ERROS', 'AUDITADA', 'NADA AQUI', 'TUDO CERTO?!'];
+const CONVEYOR_SPEED = 45; // px/s das esteiras rolantes
+export const FISCAL_VIEW = { range: 96, height: 20 };
+
+/** O Fiscal enxerga à frente dele, na mesma altura (atordoado ele não vê nada). */
+export function fiscalSees(e, p) {
+  if (e.kind !== 'fiscal' || e.state !== 'walk') return false;
+  const dx = (p.x + p.w / 2 - (e.x + e.w / 2)) * e.dir;
+  return dx > -6 && dx < FISCAL_VIEW.range && Math.abs(p.y + p.h / 2 - (e.y + e.h / 2)) < FISCAL_VIEW.height;
+}
 
 function readSave() {
   try { return JSON.parse(localStorage.getItem(SAVE_KEY)) ?? {}; } catch { return {}; }
@@ -55,12 +64,14 @@ export function createRun(levelData) {
     marmitas: (P.m ?? []).map((pt, i) => at(pt, { id: `m${i}`, x: pt.x + 1, y: pt.y - 24, w: 14, h: 40, drawX: pt.x + 3, drawY: pt.y + 8, taken: false })),
     // área de entrega generosa: o acampado pega a marmita no ar
     acampados: (P.a ?? []).map((pt, i) => at(pt, { id: `a${i}`, x: pt.x - 4, y: pt.y - 40, w: 24, h: 56, fed: false, timer: 0 })),
+    notinhas: (P.n ?? []).map((pt, i) => at(pt, { id: `n${i}`, x: pt.x + 1, y: pt.y - 16, w: 14, h: 32, drawX: pt.x + 3, drawY: pt.y + 6, taken: false })),
+    caixas: (P.D ?? []).map((pt, i) => at(pt, { id: `d${i}`, x: pt.x - 2, y: pt.y - 12, w: 20, h: 28, drawX: pt.x, drawY: pt.y - 12, cooldown: 0 })),
     pendrives: (P.p ?? []).map((pt, i) => at(pt, { id: `p${i}`, x: pt.x + 4, y: pt.y + 4, w: 8, h: 8, taken: false })),
     chargers: (P.z ?? []).map((pt, i) => at(pt, { id: `z${i}`, x: pt.x + 4, y: pt.y + 6, w: 8, h: 10, taken: false })),
     enemies: Object.entries(ENEMY_KINDS).flatMap(([ch, cfg]) => (P[ch] ?? []).map((pt) => createEnemy(cfg.kind, pt.x, pt.y, cfg))),
     urnas,
     zaps: [],
-    session: { fe: FE.max, lives: 3, score: 0, votes: 0, zap: PATRICIO_STATS.ammo, carrying: 0, delivered: 0, opened: 0, provas: 0, time: 0, hours72: HOURS72, maxX: 0 },
+    session: { fe: FE.max, lives: 3, score: 0, votes: 0, zap: PATRICIO_STATS.ammo, carrying: 0, delivered: 0, opened: 0, notinhas: 0, deposited: 0, provas: 0, time: 0, hours72: HOURS72, maxX: 0 },
   };
 }
 
@@ -118,14 +129,17 @@ export class MissaoGame {
   // ---------- objetivo da fase ----------
   objectiveProgress() {
     const o = this.levelData.objective;
-    return o.type === 'marmitas' ? this.session.delivered : this.session.opened;
+    const s = this.session;
+    return o.type === 'marmitas' ? s.delivered : o.type === 'depositos' ? s.deposited : s.opened;
   }
   objectiveDone() {
     return this.objectiveProgress() >= this.levelData.objective.meta;
   }
   objectiveText() {
     const o = this.levelData.objective;
-    const carrying = o.type === 'marmitas' && this.session.carrying ? `  · NA MÃO ${this.session.carrying}` : '';
+    const s = this.session;
+    const carrying = o.type === 'marmitas' && s.carrying ? `  · NA MÃO ${s.carrying}`
+      : o.type === 'depositos' && s.notinhas ? `  · NO BOLSO ${s.notinhas}` : '';
     return `${o.label} ${this.objectiveProgress()}/${o.meta}${carrying}`;
   }
 
@@ -225,6 +239,11 @@ export class MissaoGame {
     for (const pr of E.promessas) {
       for (const ev of updatePromessa(pr, dt, p.standingOn === pr, map.pixelH)) if (ev === 'promessa:shake') this.say('promessa');
     }
+    // esteiras rolantes empurram quem está em cima (aplicado como "plataforma" sob os pés)
+    if (p.onGround && !p.standingOn) {
+      const under = map.at(Math.floor((p.x + p.w / 2) / TILE), Math.floor((p.y + p.h + 1) / TILE));
+      if (under === '>' || under === '<') p.standingOn = { dx: (under === '>' ? 1 : -1) * CONVEYOR_SPEED * dt, dy: 0, conveyor: true };
+    }
     const prevBottom = p.y + p.h;
     for (const ev of updatePlayer(p, control, dt, map, E.promessas)) {
       if (ev === 'jump') this.sfx.play('jump');
@@ -280,6 +299,39 @@ export class MissaoGame {
     for (const v of E.votes) if (!v.taken && overlaps(p, v)) { v.taken = true; s.votes++; s.score += SCORE.vote; this.float(v.x + 4, v.y - 2, '+10'); this.sfx.play('coin'); }
     for (const m of this.marmitas) if (!m.taken && overlaps(p, m)) { m.taken = true; s.carrying++; this.float(m.drawX + 5, m.drawY - 4, '+1 MARMITA', '#ffffff'); this.sfx.play('coin'); }
     for (const c of this.chargers) if (!c.taken && overlaps(p, c)) { c.taken = true; s.zap += FE.ammoPickup; this.float(c.x + 4, c.y - 4, `+${FE.ammoPickup} ZAP`, '#7cf27c'); this.sfx.play('coin'); }
+    for (const n of this.notinhas) {
+      if (n.taken || !overlaps(p, n)) continue;
+      if (s.notinhas >= FE.bolsoMax) {
+        if (this.gateCooldown === 0) { this.gateCooldown = 2; this.say('bolso', 'high'); this.float(p.x + 5, p.y - 8, 'BOLSO CHEIO!', '#ff6a6a'); }
+        continue;
+      }
+      n.taken = true;
+      s.notinhas++;
+      this.float(n.drawX + 5, n.drawY - 4, '+1 NOTINHA', '#7cf27c');
+      this.sfx.play('coin');
+    }
+    for (const c of this.caixas) {
+      c.cooldown = Math.max(0, c.cooldown - dt);
+      if (!s.notinhas || c.cooldown > 0 || !overlaps(p, c)) continue;
+      c.cooldown = 1;
+      const flagra = this.enemies.find((e) => fiscalSees(e, p));
+      if (flagra) {
+        // o Fiscal viu: notinhas confiscadas, Fé abalada
+        this.float(c.x + 10, c.y - 8, `FISCAL VIU! -${s.notinhas} NOTINHAS`, '#ff6a6a');
+        s.notinhas = 0;
+        s.fe = Math.max(0, s.fe - FE.hitFlagra);
+        this.say('flagra', 'high');
+        this.sfx.play('hurt');
+      } else {
+        const n = Math.min(s.notinhas, this.levelData.objective.meta - s.deposited);
+        s.deposited += n;
+        s.notinhas -= n;
+        s.score += SCORE.deposito * n;
+        this.float(c.x + 10, c.y - 8, `DEPÓSITO FRACIONADO +${n}`, '#7cf27c');
+        this.say('deposito', 'high');
+        this.sfx.play('deliver');
+      }
+    }
     for (const d of this.pendrives) {
       if (!d.taken && overlaps(p, d)) { d.taken = true; s.provas++; s.score += SCORE.pendrive; this.float(d.x + 4, d.y - 4, 'PROVA DA FRAUDE!'); this.say('pendrive', 'high'); this.sfx.play('coin'); }
     }

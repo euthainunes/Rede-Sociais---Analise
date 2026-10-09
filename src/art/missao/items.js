@@ -180,3 +180,26 @@ export function drawUrnaBloco(ctx, x, y, open = false, t = 0) {
   for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) r(3 + i * 3, 10 + j * 2, 2, 1, open ? '#7a7a80' : '#ffffff');
   r(12, 12, 2, 1, open ? '#5a7a5a' : '#1f9e3a');
 }
+
+// Notinha (dinheiro vivo) e caixa de depósito (fase 3).
+export const NOTINHA = sprite('notinha', rows(`
+KKKKKKKKKK
+KGGGGGGGGK
+KGgGGWGGgK
+KGGGWWWGGK
+KGgGGWGGgK
+KGGGGGGGGK
+KKKKKKKKKK`), { K: '#2a5a2a', G: '#7ab85a', g: '#4a8a3a', W: '#d8f0c8' });
+
+/** Caixa de depósito "boca do caixa" (16x28). glow: 0..1 quando o Patrício pode depositar. */
+export function drawCaixaDeposito(ctx, x, y, glow = 0) {
+  const r = (a, b, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(x + a, y + b, w, h); };
+  if (glow) r(-2, -2, 20, 32, `rgba(124,242,124,${0.35 * glow})`);
+  r(0, 0, 16, 28, '#1a1a1a');
+  r(1, 1, 14, 26, '#5a6a7a');
+  r(2, 2, 12, 3, '#c8202f');
+  r(3, 7, 10, 6, '#9ad8ff');
+  r(4, 9, 4, 1, '#1a3a5a');
+  r(3, 15, 10, 2, '#1a1a1a'); // fenda do depósito
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) r(4 + i * 3, 19 + j * 3, 2, 2, '#d8d8d8');
+}

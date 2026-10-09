@@ -101,10 +101,20 @@ export function prerenderLevel(level) {
     for (let tx = 0; tx <= map.w; tx++) {
       const ch = rows[ty][tx];
       if (ch === 'C') draw(ctx, TL.CAIXOTE, tx * TILE, ty * TILE);
-      const runnable = ch === 'B' || ch === '=' ? ch : null;
+      const runnable = ch === 'B' || ch === '=' || ch === '>' || ch === '<' ? ch : null;
       if (runnable !== runChar) {
         if (runChar === 'B') TL.drawBlock(ctx, theme, start * TILE, ty * TILE, (tx - start) * TILE, TILE);
         if (runChar === '=') TL.drawOneWay(ctx, theme, start * TILE, ty * TILE, (tx - start) * TILE);
+        if (runChar === '>' || runChar === '<') {
+          // esteira rolante: desenho de esteira + setas indicando o sentido
+          TL.drawOneWay(ctx, 'chocolate', start * TILE, ty * TILE, (tx - start) * TILE);
+          for (let ax = start * TILE + 4; ax < tx * TILE - 4; ax += 12) {
+            const d = runChar === '>' ? 1 : -1;
+            rect(ctx, ax + (d > 0 ? 0 : 2), ty * TILE + 1, 1, 3, '#f5d000');
+            rect(ctx, ax + 1, ty * TILE + 2 - 0, 1, 1, '#f5d000');
+            rect(ctx, ax + (d > 0 ? 2 : 0), ty * TILE + 2, 1, 1, '#f5d000');
+          }
+        }
         runChar = runnable;
         start = tx;
       }
