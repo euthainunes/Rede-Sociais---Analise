@@ -19,7 +19,7 @@ import { importConversions, type ConversionFormat } from "@veredito/db/commerce"
 import {
   buildEditionDraft, createWebhookEndpoint, retryWebhookDelivery, sendEdition, sendWebhookTest, setWebhookEndpointActive, updateEdition,
 } from "@veredito/db/people";
-import { ADMIN_COOKIE, adminSql, errorMessage, parseSections, requestFingerprint, requireStaff } from "@/lib/admin";
+import { ADMIN_COOKIE, adminSql, currentStaff, errorMessage, parseSections, requestFingerprint, requireStaff } from "@/lib/admin";
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 const back = (path: string, kind: "ok" | "erro", msg: string) => `${path}${path.includes("?") ? "&" : "?"}${kind}=${encodeURIComponent(msg)}`;
@@ -32,9 +32,14 @@ function publicChanged() {
 export async function loginAction(form: FormData) {
   const sql = adminSql();
   if (!sql) redirect("/admin/login?erro=" + encodeURIComponent("Banco de dados não configurado"));
+  // Já entrou (ex.: segundo clique enquanto o primeiro processava): não abre outra sessão.
+  if (await currentStaff()) redirect("/admin");
   const res = await login(sql, { email: str(form, "email"), password: String(form.get("password") ?? ""), code: str(form, "code"), ...(await requestFingerprint()) });
   if (!res.ok) {
-    redirect(back("/admin/login", "erro", res.reason === "locked" ? "Conta bloqueada por 15 minutos após várias tentativas." : "E-mail, senha ou código inválidos."));
+    const msg = res.reason === "locked" ? "Conta bloqueada por 15 minutos após várias tentativas."
+      : res.reason === "throttled" ? "Muitas tentativas a partir desta rede. Tente de novo em 15 minutos."
+      : "E-mail, senha ou código inválidos. Cada código do autenticador vale uma vez: se já usou este, espere o próximo.";
+    redirect(back("/admin/login", "erro", msg));
   }
   (await cookies()).set(ADMIN_COOKIE, res.token, {
     httpOnly: true,

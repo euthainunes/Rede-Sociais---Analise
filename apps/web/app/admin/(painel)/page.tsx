@@ -7,23 +7,46 @@ import { requireStaff } from "@/lib/admin";
 
 type Props = { searchParams: Promise<{ ok?: string; erro?: string; dias?: string }> };
 
+const when = (d: Date) => d.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+function ago(d: Date) {
+  const min = Math.round((Date.now() - d.getTime()) / 60_000);
+  if (min < 60) return `há ${Math.max(min, 1)} min`;
+  if (min < 48 * 60) return `há ${Math.round(min / 60)} h`;
+  return `há ${Math.round(min / 1440)} dias`;
+}
+
 export default async function Dashboard({ searchParams }: Props) {
   const sp = await searchParams;
   const { sql } = await requireStaff("dashboard:read");
   const days = [7, 30, 90].includes(Number(sp.dias)) ? Number(sp.dias) : 7;
   const [m, alerts, runs] = await Promise.all([dashboardMetrics(sql, days), listOpenAlerts(sql), lastRuns(sql)]);
   const maxDay = Math.max(1, ...m.daily.map((d) => d.clicks));
+  const h = m.health;
   return (
     <>
       <h1>Visão geral</h1>
       <Flash sp={sp} />
+      {h.workerStale && (
+        <div className="flash erro" role="alert">
+          <strong>{h.lastJobAt ? `As rotinas automáticas não rodam desde ${when(h.lastJobAt)}.` : "As rotinas automáticas nunca rodaram."}</strong>{" "}
+          Sem elas, nenhum preço é atualizado e o site esconde ofertas com mais de 24 h
+          {h.pricesHideAt && (h.pricesHideAt.getTime() > Date.now() ? `: o último preço some em ${when(h.pricesHideAt)}` : ": hoje nenhum produto mostra preço")}.
+          Para ligar, configure o segredo <code>WORKER_DATABASE_URL</code> no GitHub (o workflow “Worker (agendado)” roda a cada 15 minutos).
+        </div>
+      )}
+      <section className="kpis" aria-label="Saúde do site">
+        <div className="kpi"><span className="small muted">Produtos com preço válido agora</span><strong>{h.withPrice} de {h.published}</strong><span className="small muted">publicados, com oferta de até 24 h</span></div>
+        <div className="kpi"><span className="small muted">Última coleta de preços</span><strong>{h.lastPriceAt ? ago(h.lastPriceAt) : "nunca"}</strong><span className="small muted">{h.lastPriceAt ? when(h.lastPriceAt) : "importe um feed em Ofertas"}</span></div>
+        <div className="kpi"><span className="small muted">Rotinas automáticas</span><strong>{h.lastJobAt ? ago(h.lastJobAt) : "nunca rodaram"}</strong><span className="small muted">{h.workerStale ? "atrasadas: esperado a cada 15 min" : "em dia"}</span></div>
+      </section>
+      <h2>Atividade</h2>
       <nav className="row" aria-label="Período">
         {[7, 30, 90].map((d) => <Link key={d} className="chip" aria-current={d === days} href={`/admin?dias=${d}`}>{d} dias</Link>)}
       </nav>
       <section className="kpis" style={{ marginTop: 16 }}>
         <div className="kpi"><span className="small muted">Cliques em ofertas</span><strong>{m.clicks.total}</strong><span className="small muted">{m.clicks.bots} de robôs descartados</span></div>
         <div className="kpi"><span className="small muted">Produtos publicados</span><strong>{m.counts.published}</strong><span className="small muted">de {m.counts.products}</span></div>
-        <div className="kpi"><span className="small muted">Ofertas ativas</span><strong>{m.counts.offers}</strong><span className="small muted">{m.counts.stale} com preço &gt; 24 h</span></div>
+        <div className="kpi"><span className="small muted">Ofertas com preço válido</span><strong>{m.counts.offers}</strong><span className="small muted">{m.counts.stale} escondidas (preço &gt; 24 h)</span></div>
         <div className="kpi"><span className="small muted">Fila de matching</span><strong>{m.counts.pending}</strong><Link className="small" href="/admin/ofertas">revisar</Link></div>
         <div className="kpi"><span className="small muted">Alertas de preço ativos</span><strong>{m.counts.alerts_active}</strong><span className="small muted">{m.counts.subscribers} na newsletter</span></div>
         <div className="kpi"><span className="small muted">Conteúdo em andamento</span><strong>{m.counts.drafts}</strong><span className="small muted">{m.counts.needs_update} precisam de atualização</span></div>
@@ -92,7 +115,6 @@ export default async function Dashboard({ searchParams }: Props) {
           ))}</tbody>
         </table>
       ) : <p className="muted">O worker ainda não rodou. Inicie com <code>pnpm --filter @veredito/worker start</code>.</p>}
-      <p className="small muted">Receita e comissões entram aqui quando a importação de conversões estiver ligada (visível só para administrador e comercial).</p>
     </>
   );
 }

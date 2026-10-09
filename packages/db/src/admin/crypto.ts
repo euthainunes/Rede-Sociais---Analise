@@ -65,14 +65,18 @@ export function totp(secret: Buffer | string, timeMs = Date.now(), digits = 6, s
   return String(bin % 10 ** digits).padStart(digits, "0");
 }
 
-/** Aceita o código do passo atual e de ±1 passo (tolerância de relógio). */
-export function verifyTotp(secret: string, code: string, timeMs = Date.now()): boolean {
-  if (!/^\d{6}$/.test(code)) return false;
+/** Passo de 30 s em que o código bate (atual ou ±1, tolerância de relógio), ou null. Guardar o passo impede reusar o código. */
+export function matchTotpStep(secret: string, code: string, timeMs = Date.now()): number | null {
+  if (!/^\d{6}$/.test(code)) return null;
   for (const drift of [-1, 0, 1]) {
-    const expected = totp(secret, timeMs + drift * 30_000);
-    if (timingSafeEqual(Buffer.from(expected), Buffer.from(code))) return true;
+    const t = timeMs + drift * 30_000;
+    if (timingSafeEqual(Buffer.from(totp(secret, t)), Buffer.from(code))) return Math.floor(t / 30_000);
   }
-  return false;
+  return null;
+}
+
+export function verifyTotp(secret: string, code: string, timeMs = Date.now()): boolean {
+  return matchTotpStep(secret, code, timeMs) != null;
 }
 
 export function otpauthUri(secret: string, email: string, issuer: string): string {

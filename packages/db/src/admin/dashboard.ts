@@ -7,7 +7,7 @@ export async function dashboardMetrics(sql: Sql, days = 7) {
     SELECT
       (SELECT count(*)::int FROM catalog.product WHERE deleted_at IS NULL) AS products,
       (SELECT count(*)::int FROM catalog.product WHERE deleted_at IS NULL AND publish_status = 'published') AS published,
-      (SELECT count(*)::int FROM commerce.offer WHERE status = 'active') AS offers,
+      (SELECT count(*)::int FROM commerce.offer WHERE status = 'active' AND last_checked_at >= now() - interval '24 hours') AS offers,
       (SELECT count(*)::int FROM commerce.offer WHERE status = 'active' AND last_checked_at < now() - interval '24 hours') AS stale,
       (SELECT count(*)::int FROM ops.match_candidate WHERE status = 'pending') AS pending,
       (SELECT count(*)::int FROM editorial.content WHERE status IN ('draft','in_review','approved')) AS drafts,
@@ -33,7 +33,28 @@ export async function dashboardMetrics(sql: Sql, days = 7) {
   const daily = await sql<{ day: string; clicks: number }[]>`
     SELECT to_char(date_trunc('day', ts), 'YYYY-MM-DD') AS day, count(*)::int AS clicks
     FROM analytics.click WHERE ts >= ${since} AND NOT is_bot GROUP BY 1 ORDER BY 1`;
-  return { counts: counts!, clicks: clicks!, topProducts, byPage, byCta, byMerchant, daily, days };
+  return { counts: counts!, clicks: clicks!, topProducts, byPage, byCta, byMerchant, daily, days, health: await siteHealth(sql) };
+}
+
+/**
+ * Saúde do que o visitante vê: o site esconde ofertas com mais de 24 h, então sem coleta os preços somem.
+ * Calculado na hora (não depende do worker, que é justamente o que pode estar parado).
+ */
+export async function siteHealth(sql: Sql) {
+  const [h] = await sql<{ last_job_at: Date | null; last_price_at: Date | null; published: number; with_price: number }[]>`
+    SELECT
+      (SELECT max(started_at) FROM ops.job_run) AS last_job_at,
+      (SELECT max(last_checked_at) FROM commerce.offer WHERE status = 'active' AND match_status IN ('auto','confirmed')) AS last_price_at,
+      (SELECT count(*)::int FROM catalog.product WHERE deleted_at IS NULL AND publish_status = 'published') AS published,
+      (SELECT count(DISTINCT p.id)::int FROM catalog.product p
+         JOIN catalog.product_variant v ON v.product_id = p.id
+         JOIN commerce.offer o ON o.variant_id = v.id
+       WHERE p.deleted_at IS NULL AND p.publish_status = 'published' AND o.status = 'active' AND o.match_status IN ('auto','confirmed')
+         AND o.price_cash IS NOT NULL AND o.last_checked_at >= now() - interval '24 hours') AS with_price`;
+  const now = Date.now();
+  const workerStale = !h!.last_job_at || now - h!.last_job_at.getTime() > 60 * 60_000;
+  const pricesHideAt = h!.last_price_at ? new Date(h!.last_price_at.getTime() + 24 * 3_600_000) : null;
+  return { lastJobAt: h!.last_job_at, lastPriceAt: h!.last_price_at, published: h!.published, withPrice: h!.with_price, workerStale, pricesHideAt };
 }
 
 export interface AlertRow {
@@ -90,7 +111,7 @@ export async function refreshInternalAlerts(sql: Sql): Promise<{ opened: number;
       SELECT 'no_review' AS kind, 'medium' AS severity, 'product' AS entity_type, p.id AS entity_id, json_build_object('name', p.name) AS details
       FROM catalog.product p WHERE p.publish_status = 'published' AND p.deleted_at IS NULL AND NOT EXISTS (
         SELECT 1 FROM editorial.content_product cp JOIN editorial.content c ON c.id = cp.content_id
-        WHERE cp.product_id = p.id AND c.type = 'review' AND c.status = 'published')`),
+        WHERE cp.product_id = p.id AND c.type = 'review' AND c.live IS NOT NULL)`),
     ...(await sql<Found[]>`
       SELECT 'content_outdated' AS kind, 'medium' AS severity, 'content' AS entity_type, c.id AS entity_id,
         json_build_object('title', c.title, 'next_review_at', c.next_review_at) AS details

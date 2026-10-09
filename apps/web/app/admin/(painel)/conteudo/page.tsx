@@ -8,7 +8,7 @@ const KIND: Record<string, string> = { review: "Review", best_list: "Melhores", 
 export default async function ContentAdmin({ searchParams }: { searchParams: Promise<{ ok?: string; erro?: string }> }) {
   const { staff, sql } = await requireStaff("dashboard:read");
   const rows = await listContentAdmin(sql);
-  const columns: (keyof typeof STATUS_LABELS)[] = ["draft", "in_review", "approved", "published", "needs_update"];
+  const columns: (keyof typeof STATUS_LABELS)[] = ["draft", "in_review", "approved", "published", "needs_update", "archived"];
   return (
     <>
       <div className="row" style={{ justifyContent: "space-between" }}>

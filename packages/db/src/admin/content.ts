@@ -1,6 +1,8 @@
 /**
  * Conteúdo editorial: edição, revisões e workflow (docs/15 §15.5):
  * Rascunho → Revisão → Aprovado → Publicado → Atualização necessária ↺ (e Arquivado).
+ * A versão no ar (`live`) é separada da versão em edição: editar um texto publicado não o tira do ar,
+ * só publicar de novo troca o que o site mostra, e só arquivar o retira.
  */
 import { randomUUID } from "node:crypto";
 import { getCategory, slugify } from "@veredito/core";
@@ -60,6 +62,13 @@ export async function listContentAdmin(sql: Sql) {
     ORDER BY c.updated_at DESC LIMIT 200`;
 }
 
+/** Conteúdo que já foi ao ar mantém o endereço (links e posição no Google); o tipo também não muda mais. */
+async function frozenPath(sql: Sql, id: string): Promise<{ path: string; kind: string } | null> {
+  const [c] = await sql<{ url_path: string; kind: string; live: unknown; published_at: Date | null }[]>`
+    SELECT url_path, coalesce(body->>'kind', type) AS kind, live, published_at FROM editorial.content WHERE id = ${id}`;
+  return c && (c.live || c.published_at) ? { path: c.url_path, kind: c.kind } : null;
+}
+
 export async function getContentAdmin(sql: Sql, id: string) {
   const [c] = await sql`
     SELECT c.*, cat.slug AS category,
@@ -82,7 +91,7 @@ async function authorFor(sql: Sql, staff: Staff): Promise<string> {
   return id;
 }
 
-/** Salva o conteúdo (sempre gera revisão). Editar conteúdo publicado o devolve para revisão. */
+/** Salva o conteúdo (sempre gera revisão). Editar conteúdo publicado o devolve para revisão; a versão no ar continua no site. */
 export async function saveContent(sql: Sql, staff: Staff, input: ContentInput): Promise<string> {
   requirePermission(staff, "content:write");
   const issues: string[] = [];
@@ -97,7 +106,9 @@ export async function saveContent(sql: Sql, staff: Staff, input: ContentInput): 
   const missing = input.productSlugs.filter((s) => !products.some((p) => p.slug === s));
   if (missing.length) throw new ValidationError([`produtos não encontrados: ${missing.join(", ")}`]);
 
-  const path = pathFor(input);
+  const frozen = input.id ? await frozenPath(sql, input.id) : null;
+  if (frozen && frozen.kind !== input.kind) throw new ValidationError(["o tipo de um conteúdo que já foi publicado não pode mudar"]);
+  const path = frozen?.path ?? pathFor(input);
   const [taken] = await sql`SELECT id FROM editorial.content WHERE url_path = ${path} AND id IS DISTINCT FROM ${input.id ?? null}`;
   if (taken) throw new ValidationError([`já existe conteúdo publicado ou em edição em ${path}`]);
 
@@ -109,11 +120,15 @@ export async function saveContent(sql: Sql, staff: Staff, input: ContentInput): 
     if (input.id && !cur) throw new ValidationError(["conteúdo não encontrado"]);
     const status: ContentStatus = !cur ? "draft" : cur.status === "published" || cur.status === "approved" ? "in_review" : cur.status;
     const [cat] = await tx<{ id: string }[]>`SELECT id FROM catalog.category WHERE slug = ${input.category}`;
+    // Publicado antes de existir `live` (ex.: dados semeados): guarda a versão no ar antes de sobrescrever.
+    await tx`
+      UPDATE editorial.content SET live = jsonb_build_object('title', title, 'body', body), live_at = coalesce(published_at, now())
+      WHERE id = ${id} AND live IS NULL AND status IN ('published', 'needs_update')`;
     await tx`
       INSERT INTO editorial.content (id, type, slug, url_path, title, body, status, evidence_level, author_id, category_id, ai_assisted)
       VALUES (${id}, ${input.kind}, ${slugify(input.title)}, ${path}, ${input.title.trim()}, ${tx.json(body as never)}, ${status},
         ${input.evidenceLevel}, ${await authorFor(t, staff)}, ${cat?.id ?? null}, false)
-      ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title, body = EXCLUDED.body, status = ${status},
+      ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title, body = EXCLUDED.body, status = ${status}, url_path = EXCLUDED.url_path,
         evidence_level = EXCLUDED.evidence_level, category_id = EXCLUDED.category_id, updated_at = now()`;
     await tx`DELETE FROM editorial.content_product WHERE content_id = ${id}`;
     for (const [i, slug] of input.productSlugs.entries()) {
@@ -139,16 +154,20 @@ export async function transitionContent(
   hooks: { onPublished?: (id: string) => Promise<void>; onUnpublished?: (id: string) => Promise<void> } = {},
 ): Promise<void> {
   requirePermission(staff, to === "published" || to === "archived" ? "content:publish" : "content:write");
-  const [c] = await sql<{ status: ContentStatus }[]>`SELECT status FROM editorial.content WHERE id = ${id}`;
+  const [c] = await sql<{ status: ContentStatus; was_live: boolean }[]>`SELECT status, live IS NOT NULL AS was_live FROM editorial.content WHERE id = ${id}`;
   if (!c) throw new ValidationError(["conteúdo não encontrado"]);
   if (!TRANSITIONS[c.status].includes(to)) throw new ValidationError([`não é possível ir de "${STATUS_LABELS[c.status]}" para "${STATUS_LABELS[to]}"`]);
+  // Publicar copia a versão em edição para o ar; arquivar retira do ar; os demais status não mexem no que o site mostra.
   await sql`
     UPDATE editorial.content SET status = ${to}, updated_at = now(),
       published_at = CASE WHEN ${to} = 'published' THEN coalesce(published_at, now()) ELSE published_at END,
       next_review_at = CASE WHEN ${to} = 'published' THEN current_date + 90 ELSE next_review_at END,
-      reviewer_id = CASE WHEN ${to} IN ('approved','published') THEN ${staff.id}::uuid ELSE reviewer_id END
+      reviewer_id = CASE WHEN ${to} IN ('approved','published') THEN ${staff.id}::uuid ELSE reviewer_id END,
+      live = CASE WHEN ${to} = 'published' THEN jsonb_build_object('title', title, 'body', body)
+                  WHEN ${to} = 'archived' THEN NULL ELSE live END,
+      live_at = CASE WHEN ${to} = 'published' THEN now() WHEN ${to} = 'archived' THEN NULL ELSE live_at END
     WHERE id = ${id}`;
   await audit(sql, staff, "content.transition", { type: "content", id }, { before: { status: c.status }, after: { status: to } });
   if (to === "published") await hooks.onPublished?.(id);
-  if (c.status === "published" && to !== "published") await hooks.onUnpublished?.(id);
+  if (to === "archived" && c.was_live) await hooks.onUnpublished?.(id);
 }

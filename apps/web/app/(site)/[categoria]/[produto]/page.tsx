@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { PRICE_LABELS, slugify } from "@veredito/core";
 import { AlertForm } from "@/components/AlertForm";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
@@ -56,7 +56,12 @@ export default async function ProductPageView({ params, searchParams }: Props) {
   const { categoria, produto } = await params;
   const sp = await searchParams;
   const page = await catalog().getProductPage(categoria, produto, sp.v);
-  if (!page) notFound();
+  if (!page) {
+    // Produto que mudou de endereço: 301 para o novo, mantendo a versão escolhida.
+    const to = await catalog().redirectFor(`/${categoria}/${produto}`);
+    if (to) permanentRedirect(sp.v ? `${to}?v=${encodeURIComponent(sp.v)}` : to);
+    notFound();
+  }
   const { summary: s, product: p, selected: sel, config } = page;
   const range = RANGES.find((r) => r.key === sp.periodo) ?? RANGES[2];
   const best = sel.best;

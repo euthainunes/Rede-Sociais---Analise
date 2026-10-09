@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { Icon } from "@/components/Icon";
 import { JsonLd } from "@/components/JsonLd";
@@ -33,7 +33,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function BestListPage({ params }: Props) {
   const { slug } = await params;
   const b = await catalog().bestList(`/melhores/${slug}`);
-  if (!b) notFound();
+  if (!b) {
+    const to = await catalog().redirectFor(`/melhores/${slug}`);
+    if (to) permanentRedirect(to);
+    notFound();
+  }
   return (
     <article>
       <Breadcrumbs items={[{ name: "Celulares", path: "/celulares" }, { name: b.content.title, path: b.content.path }]} />

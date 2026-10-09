@@ -123,8 +123,13 @@ export async function saveProduct(sql: Sql, staff: Staff, input: ProductInput): 
         summary = EXCLUDED.summary, editorial = EXCLUDED.editorial, publish_status = EXCLUDED.publish_status, updated_at = now()`;
 
     // Mudou o slug: redirect 301 do endereço antigo (docs/05 §5).
+    // Sem cadeias (A→B→C vira A→C) e sem laço quando o endereço volta a um antigo.
     if (before && before.slug !== slug) {
-      await tx`INSERT INTO editorial.redirect (from_path, to_path) VALUES (${`/${input.category}/${before.slug}`}, ${`/${input.category}/${slug}`})
+      const from = `/${input.category}/${before.slug}`;
+      const to = `/${input.category}/${slug}`;
+      await tx`DELETE FROM editorial.redirect WHERE from_path = ${to}`;
+      await tx`UPDATE editorial.redirect SET to_path = ${to} WHERE to_path = ${from}`;
+      await tx`INSERT INTO editorial.redirect (from_path, to_path) VALUES (${from}, ${to})
                ON CONFLICT (from_path) DO UPDATE SET to_path = EXCLUDED.to_path`;
     }
 

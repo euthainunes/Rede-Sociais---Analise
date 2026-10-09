@@ -94,13 +94,15 @@ export async function seedDemo(sql: Sql): Promise<void> {
     const productIdBySlug = new Map(demo.products.map((p) => [p.slug, U(p.id)]));
     for (const c of demo.contents) {
       const cid = U(c.id);
+      const body = { intro: c.intro ?? null, sections: c.sections, picks: c.picks ?? [], kind: c.type } as never;
       await tx`
         INSERT INTO editorial.content (id, type, slug, url_path, title, body, status, evidence_level, author_id, category_id,
-          published_at, updated_at)
+          published_at, updated_at, live, live_at)
         VALUES (${cid}, ${c.type === "methodology" ? "guide" : c.type}, ${c.path.split("/").pop()!}, ${c.path}, ${c.title},
-          ${tx.json({ intro: c.intro ?? null, sections: c.sections, picks: c.picks ?? [], kind: c.type } as never)}, 'published',
-          ${c.evidenceLevel}, ${authorId}, ${c.category ? U(`category:${c.category}`) : null}, ${c.publishedAt}, ${c.updatedAt})
-        ON CONFLICT (id) DO UPDATE SET body = EXCLUDED.body, updated_at = EXCLUDED.updated_at`;
+          ${tx.json(body)}, 'published',
+          ${c.evidenceLevel}, ${authorId}, ${c.category ? U(`category:${c.category}`) : null}, ${c.publishedAt}, ${c.updatedAt},
+          ${tx.json({ title: c.title, body })}, ${c.updatedAt})
+        ON CONFLICT (id) DO UPDATE SET body = EXCLUDED.body, live = EXCLUDED.live, updated_at = EXCLUDED.updated_at`;
       for (const [i, slug] of c.productSlugs.entries()) {
         await tx`INSERT INTO editorial.content_product (content_id, product_id, role, position)
                  VALUES (${cid}, ${productIdBySlug.get(slug)!}, 'subject', ${i}) ON CONFLICT DO NOTHING`;
