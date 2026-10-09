@@ -3,13 +3,13 @@
 
 export const CHECAGEM = {
   quartel: {
-    titulo: 'CHECAGEM - FASE 1: ACAMPAMENTO DO QUARTEL',
+    titulo: 'Checagem · Fase 1: Acampamento do Quartel',
     itens: [
-      { tag: 'FAKE', texto: '"AS FORÇAS ARMADAS VÃO AGIR EM 72 HORAS." NÃO AGIRAM. NEM EM 72 DIAS.' },
-      { tag: 'FATO', texto: 'APÓS A ELEIÇÃO DE 2022, APOIADORES ACAMPARAM EM FRENTE A QUARTÉIS PEDINDO "INTERVENÇÃO". OS ACAMPAMENTOS FORAM DESMONTADOS APÓS O 8 DE JANEIRO.' },
-      { tag: 'FATO', texto: 'EM 30/12/2022, DOIS DIAS ANTES DA POSSE, BOLSONARO VIAJOU PARA A FLÓRIDA (EUA) E NÃO PASSOU A FAIXA.' },
-      { tag: 'FATO', texto: 'ATÉ JAN/2026, O STF HAVIA CONDENADO MAIS DE 800 PESSOAS PELOS ATOS DE 8 DE JANEIRO.' },
-      { tag: 'PIADA', texto: 'O PATRÍCIO, O PNEU MILAGROSO E OS PENDRIVES VAZIOS SÃO FICÇÃO DESTE JOGO.' },
+      { tag: 'FAKE', texto: '"As Forças Armadas vão agir em 72 horas." Não agiram. Nem em 72 dias.' },
+      { tag: 'FATO', texto: 'Após a eleição de 2022, apoiadores acamparam em frente a quartéis pedindo "intervenção". Os acampamentos foram desmontados depois do 8 de janeiro.' },
+      { tag: 'FATO', texto: 'Em 30/12/2022, dois dias antes da posse, Bolsonaro viajou para a Flórida (EUA) e não passou a faixa.' },
+      { tag: 'FATO', texto: 'Até jan/2026, o STF havia condenado mais de 800 pessoas pelos atos de 8 de janeiro.' },
+      { tag: 'PIADA', texto: 'O Patrício, o pneu milagroso e os pendrives vazios são ficção deste jogo.' },
     ],
     fontes: [
       { nome: 'Poder360: acampamentos desfeitos no país', url: 'https://www.poder360.com.br/brasil/acampamentos-de-extremistas-de-direita-sao-desfeitos-no-pais/' },
@@ -21,13 +21,13 @@ export const CHECAGEM = {
 };
 
 CHECAGEM.urnas = {
-  titulo: 'CHECAGEM - FASE 2: A URNA FRAUDADA',
+  titulo: 'Checagem · Fase 2: A Urna Fraudada',
   itens: [
-    { tag: 'FAKE', texto: '"A URNA ELETRÔNICA É FRAUDADA." NENHUMA FRAUDE FOI COMPROVADA. O PATRÍCIO ABRIU 10 URNAS: TODAS VAZIAS DE FRAUDE.' },
-    { tag: 'FATO', texto: 'O RELATÓRIO DAS FORÇAS ARMADAS (NOV/2022) COMPAROU BOLETINS DE URNA E RESULTADOS: 0% DE INCONSISTÊNCIA. A DEFESA DISSE DEPOIS QUE NÃO "EXCLUÍA" FRAUDE, SEM APONTAR NENHUMA.' },
-    { tag: 'FATO', texto: 'O PL PEDIU PARA ANULAR VOTOS DE 279 MIL URNAS. O TSE REJEITOU POR FALTA DE PROVAS E MULTOU O PARTIDO EM R$ 22,9 MILHÕES (NOV-DEZ/2022).' },
-    { tag: 'FATO', texto: 'EM JUN/2023 O TSE TORNOU BOLSONARO INELEGÍVEL ATÉ 2030 PELA REUNIÃO COM EMBAIXADORES (JUL/2022) EM QUE ATACOU O SISTEMA ELEITORAL.' },
-    { tag: 'PIADA', texto: 'O "CÓDIGO SECRETO", AS URNAS GIGANTES E A SALA DO CÓDIGO-FONTE SÃO FICÇÃO DESTE JOGO.' },
+    { tag: 'FAKE', texto: '"A urna eletrônica é fraudada." Nenhuma fraude foi comprovada. O Patrício abriu 10 urnas: todas vazias de fraude.' },
+    { tag: 'FATO', texto: 'O relatório das Forças Armadas (nov/2022) comparou boletins de urna e resultados: 0% de inconsistência. A Defesa disse depois que não "excluía" fraude, sem apontar nenhuma.' },
+    { tag: 'FATO', texto: 'O PL pediu para anular votos de 279 mil urnas. O TSE rejeitou por falta de provas e multou o partido em R$ 22,9 milhões (nov–dez/2022).' },
+    { tag: 'FATO', texto: 'Em jun/2023, o TSE tornou Bolsonaro inelegível até 2030 pela reunião com embaixadores (jul/2022) em que atacou o sistema eleitoral.' },
+    { tag: 'PIADA', texto: 'O "código secreto", as urnas gigantes e a sala do código-fonte são ficção deste jogo.' },
   ],
   fontes: [
     { nome: 'Diário do Nordeste: relatório da Defesa não aponta fraude', url: 'https://diariodonordeste.verdesmares.com.br/pontopoder/relatorio-do-ministerio-da-defesa-nao-aponta-fraude-nas-eleicoes-de-2022-1.3299074' },
@@ -38,13 +38,13 @@ CHECAGEM.urnas = {
 };
 
 CHECAGEM.chocolate = {
-  titulo: 'CHECAGEM - FASE 3: A FÁBRICA DE CHOCOLATE',
+  titulo: 'Checagem · Fase 3: A Fábrica de Chocolate',
   itens: [
-    { tag: 'FAKE', texto: '"NUNCA HOUVE INVESTIGAÇÃO, É INVENÇÃO DA MÍDIA." HOUVE INVESTIGAÇÃO E DENÚNCIA FORMAL.' },
-    { tag: 'ACUSAÇÃO', texto: 'O MP-RJ DENUNCIOU FLÁVIO (NOV/2020) POR "RACHADINHA" NA ALERJ. PARA O MP, UMA LOJA DE CHOCOLATES DA QUAL ERA SÓCIO TERIA SIDO USADA PARA LAVAR DINHEIRO EM ESPÉCIE.' },
-    { tag: 'STATUS', texto: 'STJ E STF ANULARAM PROVAS (NOV/2021) E O TJ-RJ ARQUIVOU A DENÚNCIA (MAI/2022). NÃO HÁ CONDENAÇÃO. FLÁVIO NEGA QUALQUER IRREGULARIDADE.' },
-    { tag: 'FATO', texto: 'MANSÃO DE CERCA DE R$ 6 MILHÕES EM BRASÍLIA, COM FINANCIAMENTO DE R$ 3,1 MILHÕES DO BRB (2021). A PF APURA AS CONDIÇÕES DO EMPRÉSTIMO; ELE NEGA IRREGULARIDADE.' },
-    { tag: 'PIADA', texto: 'AS NOTINHAS, O FISCAL QUE ENXERGA LONGE E OS DEPÓSITOS AOS POUQUINHOS DESTE JOGO SÃO FICÇÃO.' },
+    { tag: 'FAKE', texto: '"Nunca houve investigação, é invenção da mídia." Houve investigação e denúncia formal.' },
+    { tag: 'ACUSAÇÃO', texto: 'O MP-RJ denunciou Flávio (nov/2020) por "rachadinha" na Alerj. Para o MP, uma loja de chocolates da qual era sócio teria sido usada para lavar dinheiro em espécie.' },
+    { tag: 'STATUS', texto: 'STJ e STF anularam provas (nov/2021) e o TJ-RJ arquivou a denúncia (mai/2022). Não há condenação. Flávio nega qualquer irregularidade.' },
+    { tag: 'FATO', texto: 'Mansão de cerca de R$ 6 milhões em Brasília, com financiamento de R$ 3,1 milhões do BRB (2021). A PF apura as condições do empréstimo; ele nega irregularidade.' },
+    { tag: 'PIADA', texto: 'As notinhas, o Fiscal que enxerga longe e os depósitos aos pouquinhos deste jogo são ficção.' },
   ],
   fontes: [
     { nome: 'ConJur: MP denuncia Flávio Bolsonaro por esquema na Alerj (2020)', url: 'https://conjur.com.br/2020-nov-04/mp-denuncia-flavio-bolsonaro-esquema-rachadinha-alerj/' },
@@ -56,21 +56,21 @@ CHECAGEM.chocolate = {
 
 export const MISSAO_CARD = {
   quartel: {
-    remetente: 'GRUPO DA FAMÍLIA',
-    texto: 'URGENTE!!! AS FORÇAS ARMADAS AGEM EM 72 HORAS!!! Vá para o quartel, entregue 5 marmitas aos acampados e chegue ao portão. Depois disso: SOLTAR O MITO. Reze no pneu para salvar o progresso. Não leia checagens.',
-    medida: 'MARMITAS 0/5 · FALTAM 72H',
-    controles: '◀ ▶ ANDA · ▲/ESPAÇO PULA · X COMPARTILHA ZAP',
+    remetente: 'Grupo da Família',
+    texto: 'URGENTE!!! As Forças Armadas agem em 72 horas!!! Vá para o quartel, entregue 5 marmitas aos acampados e chegue ao portão. Depois disso: soltar o Mito. Reze no pneu para salvar o progresso. Não leia checagens.',
+    medida: 'Marmitas 0/5 · faltam 72 horas',
+    controles: '← → anda · Espaço pula · X compartilha Zap',
   },
   urnas: {
-    remetente: 'GRUPO DA FAMÍLIA',
-    texto: 'URGENTE!!! O 01 TEM AS PROVAS: A URNA É FRAUDADA!!! Invada o depósito, dê cabeçada em 10 urnas para achar o CÓDIGO SECRETO e leve tudo até a sala do código-fonte. Cuidado com o Fiscal: ele não muda de ideia.',
-    medida: 'URNAS AUDITADAS 0/10',
-    controles: '◀ ▶ ANDA · ▲/ESPAÇO PULA (CABEÇADA NA URNA) · X ZAP',
+    remetente: 'Grupo da Família',
+    texto: 'URGENTE!!! O 01 tem as provas: a urna é fraudada!!! Invada o depósito, dê cabeçada em 10 urnas para achar o código secreto e leve tudo até a sala do código-fonte. Cuidado com o Fiscal: ele não muda de ideia.',
+    medida: 'Urnas auditadas 0/10',
+    controles: '← → anda · Espaço pula (cabeçada na urna) · X compartilha Zap',
   },
   chocolate: {
-    remetente: 'GRUPO DA FAMÍLIA',
-    texto: 'O 01 É UM GÊNIO DOS NEGÓCIOS E A MÍDIA INVENTOU TUDO!!! Prove: recolha as notinhas na fábrica e faça 12 depósitos em espécie, aos pouquinhos, na boca do caixa. Só não deposite na frente do Fiscal. Depois, vá até a mansão. Você não está entendendo nada, mas confia.',
-    medida: 'DEPÓSITOS 0/12 · BOLSO: 5 NOTINHAS',
-    controles: '◀ ▶ ANDA · ▲ PULA (PISAR NO FISCAL O DISTRAI) · X ZAP',
+    remetente: 'Grupo da Família',
+    texto: 'O 01 é um gênio dos negócios e a mídia inventou tudo!!! Prove: recolha as notinhas na fábrica e faça 12 depósitos em espécie, aos pouquinhos, na boca do caixa. Só não deposite na frente do Fiscal. Depois, vá até a mansão. Você não está entendendo nada, mas confia.',
+    medida: 'Depósitos 0/12 · cabem 5 notinhas no bolso',
+    controles: '← → anda · Espaço pula (pisar no Fiscal o distrai) · X compartilha Zap',
   },
 };

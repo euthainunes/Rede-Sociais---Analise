@@ -10,12 +10,12 @@ export const URNAS = {
   id: 'urnas',
   numero: 2,
   ano: '2022',
-  name: 'A URNA FRAUDADA',
+  name: 'A Urna Fraudada',
   theme: 'galpao',
   background: 'galpao',
   targetTime: 150,
-  objective: { type: 'urnas', meta: 10, label: 'URNAS AUDITADAS' },
-  finishLabel: 'CÓDIGO-FONTE',
+  objective: { type: 'urnas', meta: 10, label: 'Urnas auditadas' },
+  finishLabel: 'Código-fonte',
   map: [
     '........................................................................................................................................................',
     '........................................................................................................................................................',
@@ -32,9 +32,9 @@ export const URNAS = {
     '##########################..####################################....#########################...########################.....###########################',
     '##########################..####################################....#########################...########################.....###########################',
   ],
-  signs: [
-    { col: 6, lines: ['URNA? CABEÇADA', 'POR BAIXO!'], color: '#ffffff' },
-    { col: 52, lines: ['FISCAL: NÃO', 'SE CONVERTE.', 'SÓ FISCALIZA.'], color: '#f5d000' },
-    { col: 139, lines: ['CÓDIGO-FONTE ▶'], color: '#ffffff' },
+  signs: [], // sem placas no cenário: as dicas aparecem na caixa de fala
+  hints: [
+    { col: 6, text: 'Urnas que piscam em amarelo: pule embaixo e dê uma cabeçada para auditar.' },
+    { col: 36, text: 'O Fiscal não muda de ideia. Pise nele para distraí-lo por um tempo.' },
   ],
 };

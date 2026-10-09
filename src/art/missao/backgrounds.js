@@ -59,10 +59,9 @@ export function quartel(ctx, w, h, camX = 0) {
   rect(ctx, qx + 150, 80, 22, 40, '#d8ccb0'); // guarita
   rect(ctx, qx + 148, 76, 26, 6, '#7a6a4a');
   rect(ctx, qx + 154, 88, 14, 8, '#3a4a5a');
-  text(ctx, 'QUARTEL GENERAL', qx + 190, 108, { color: '#3a4a2a', align: 'center' });
-  // faixas penduradas no muro
-  faixa(ctx, qx + 20, 132, 100, 'SOS FORÇAS ARMADAS');
-  faixa(ctx, qx + 250, 132, 96, 'FALTAM 72 HORAS', '#f5d000');
+  // faixas penduradas no muro (sem texto: o cenário não compete com a leitura)
+  faixa(ctx, qx + 20, 132, 100, '');
+  faixa(ctx, qx + 250, 132, 96, '', '#f5d000');
   // mastro com bandeira
   rect(ctx, qx + 236, 46, 2, 54, '#5a5a5a');
   flag(ctx, qx + 238, 46, 2);
@@ -113,16 +112,6 @@ export function galpao(ctx, w, h, camX = 0) {
   }
   // penumbra: o fundo fica escuro para as urnas jogáveis se destacarem
   rect(ctx, 0, 0, w, h, 'rgba(16,20,30,0.5)');
-  // faixas e avisos
-  const fx = Math.round(wrap(60 - mid, 660)) - 80;
-  roundRect(ctx, fx, 40, 120, 16, '#1f3a6a', '#ffffff');
-  text(ctx, 'DEPÓSITO DE URNAS', fx + 60, 45, { color: '#ffffff', align: 'center' });
-  const ax = Math.round(wrap(380 - mid, 660)) - 80;
-  roundRect(ctx, ax, 40, 110, 16, '#f5d000', '#1a1a1a');
-  text(ctx, 'AUDITORIA ABERTA', ax + 55, 45, { color: '#1a1a1a', align: 'center' });
-  const px = Math.round(wrap(560 - mid, 660)) - 80;
-  roundRect(ctx, px, 40, 96, 16, '#ffffff', '#c8202f');
-  text(ctx, 'CÓDIGO-FONTE: AQUI', px + 48, 45, { color: '#c8202f', align: 'center' });
 }
 
 // ---------------- Fase 2 (antiga): Rodovia do Caminhão ----------------
@@ -173,12 +162,11 @@ export function chocolate(ctx, w, h, camX = 0) {
   // letreiro e caixa registradora com "dinheiro vivo" voando
   const lx = Math.round(wrap(230 - mid, 600)) - 80;
   roundRect(ctx, lx, 40, 140, 22, '#6b3a1a', '#f5d000');
-  text(ctx, 'CHOCOLATES FINOS', lx + 70, 44, { color: '#f5d000', align: 'center' });
-  text(ctx, 'SÓ ACEITAMOS ESPÉCIE', lx + 70, 53, { color: '#ffe8b0', align: 'center' });
+  for (let i = 0; i < 6; i++) rect(ctx, lx + 14 + i * 20, 48, 12, 6, '#9a5a2a'); // letreiro decorativo, sem texto
   const rx = Math.round(wrap(400 - mid, 600)) - 80;
   rect(ctx, rx, 140, 30, 26, '#5a5a5a');
   rect(ctx, rx + 4, 132, 22, 10, '#3a3a3a');
-  text(ctx, 'R$', rx + 15, 134, { color: '#7cf27c', align: 'center' });
+
   const r = rng(3);
   for (let i = 0; i < 6; i++) {
     const nx = rx - 10 + Math.floor(r() * 50);

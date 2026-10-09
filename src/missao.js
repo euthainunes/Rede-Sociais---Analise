@@ -11,6 +11,7 @@ import { Input } from './game/input.js';
 import { Sfx } from './game/sfx.js';
 import { prerenderLevel } from './game/render.js';
 import { renderMissao, drawRotate } from './game/missaoRender.js';
+import { loadUIFont } from './art/ui.js';
 
 export const LEVELS = [
   { data: QUARTEL, mission: MISSAO_CARD.quartel, checagem: CHECAGEM.quartel },
@@ -21,15 +22,31 @@ export const LEVELS = [
 const canvas = document.getElementById('game');
 canvas.width = VIEW_W;
 canvas.height = VIEW_H;
+// camada de interface (texto nítido): canvas por cima do jogo, na resolução real da tela
+const uiCanvas = document.getElementById('ui');
+const ui = { ctx: uiCanvas?.getContext('2d') ?? null, scale: 1 };
 
 function resize() {
   const fit = Math.min(innerWidth / VIEW_W, innerHeight / VIEW_H);
   const scale = fit >= 2 ? Math.floor(fit) : fit;
-  canvas.style.width = `${Math.floor(VIEW_W * scale)}px`;
-  canvas.style.height = `${Math.floor(VIEW_H * scale)}px`;
+  const cssW = Math.floor(VIEW_W * scale);
+  const cssH = Math.floor(VIEW_H * scale);
+  canvas.style.width = `${cssW}px`;
+  canvas.style.height = `${cssH}px`;
+  if (uiCanvas) {
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    uiCanvas.style.width = `${cssW}px`;
+    uiCanvas.style.height = `${cssH}px`;
+    uiCanvas.width = Math.round(cssW * dpr);
+    uiCanvas.height = Math.round(cssH * dpr);
+    ui.scale = uiCanvas.width / VIEW_W;
+    ui.ctx.setTransform(ui.scale, 0, 0, ui.scale, 0, 0);
+    ui.ctx.imageSmoothingEnabled = false;
+  }
 }
 addEventListener('resize', resize);
 resize();
+await loadUIFont();
 
 const params = new URLSearchParams(location.search);
 const game = new MissaoGame(canvas, {
@@ -46,5 +63,6 @@ if (fase >= 1 && fase <= LEVELS.length) { game.levelIndex = fase - 1; game.mapCu
 // #teste (ou ?teste) libera todas as fases já prontas no mapa, sem precisar zerar as anteriores
 if (location.hash === '#teste' || params.has('teste')) game.unlocked = LEVELS.length - 1;
 game.debug = params.has('debug');
+game.ui = ui.ctx ? ui : null;
 game.run(renderMissao, drawRotate);
 window.brwar = game;

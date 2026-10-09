@@ -10,12 +10,12 @@ export const CHOCOLATE = {
   id: 'chocolate',
   numero: 3,
   ano: '2018',
-  name: 'A FÁBRICA DE CHOCOLATE',
+  name: 'A Fábrica de Chocolate',
   theme: 'chocolate',
   background: 'chocolate',
   targetTime: 160,
-  objective: { type: 'depositos', meta: 12, label: 'DEPÓSITOS' },
-  finishLabel: 'MANSÃO',
+  objective: { type: 'depositos', meta: 12, label: 'Depósitos' },
+  finishLabel: 'Mansão',
   map: [
     '........................................................................................................................................................',
     '........................................................................................................................................................',
@@ -32,9 +32,10 @@ export const CHOCOLATE = {
     '############################################...###################....#############################################################...##################',
     '############################################...###################....#############################################################...##################',
   ],
-  signs: [
-    { col: 12, lines: ['DEPOSITE EM', 'ESPÉCIE. AOS', 'POUQUINHOS.'], color: '#f5d000' },
-    { col: 23, lines: ['FISCAL VÊ', 'O QUE ESTÁ', 'NA FRENTE'], color: '#ffffff' },
-    { col: 139, lines: ['MANSÃO ▶'], color: '#f5d000' },
+  signs: [], // sem placas no cenário: as dicas aparecem na caixa de fala
+  hints: [
+    { col: 5, text: 'Pegue notinhas (cabem 5 no bolso) e deposite nas caixas de boca do caixa.' },
+    { col: 20, text: 'O Fiscal enxerga o que está na frente dele. Deposite pelas costas ou pise nele antes.' },
+    { col: 32, text: 'Esteiras rolantes empurram você na direção das setas.' },
   ],
 };

@@ -33,7 +33,7 @@ const ENEMY_KINDS = {
   K: { kind: 'checador', speed: 38, convertible: false },
   G: { kind: 'fiscal', speed: 30, convertible: false },
 };
-const URNA_LABELS = ['VAZIA', 'SÓ VOTO', '0 ERROS', 'AUDITADA', 'NADA AQUI', 'TUDO CERTO?!'];
+const URNA_LABELS = ['Vazia', 'Só voto', '0 erros', 'Auditada', 'Nada aqui', 'Tudo certo?!'];
 const CONVEYOR_SPEED = 45; // px/s das esteiras rolantes
 export const FISCAL_VIEW = { range: 96, height: 20 };
 
@@ -87,7 +87,7 @@ export class MissaoGame {
     this.sfx = sfx;
     this.prerender = prerender;
     this.levelCanvases = {};
-    this.messages = new MessageSystem(MESSAGES_MISSAO);
+    this.messages = new MessageSystem(MESSAGES_MISSAO, { cooldown: 6 });
     this.save = readSave();
     this.unlocked = Math.min(this.save.unlocked ?? 0, levels.length - 1);
     this.levelIndex = this.unlocked;
@@ -113,10 +113,12 @@ export class MissaoGame {
     this.camera = { x: 0, y: this.level.map.pixelH - VIEW_H };
     this.snapCamera();
     this.floats = [];
-    this.balloon = null;
-    this.banner = null;
+    this.dialog = null;
     this.result = null;
     this.gateCooldown = 0;
+    this.hintsShown = new Set();
+    this.clockResets = 0;
+    this.clockFlash = 0;
   }
 
   spawnPlayer() {
@@ -138,14 +140,46 @@ export class MissaoGame {
   objectiveText() {
     const o = this.levelData.objective;
     const s = this.session;
-    const carrying = o.type === 'marmitas' && s.carrying ? `  · NA MÃO ${s.carrying}`
-      : o.type === 'depositos' && s.notinhas ? `  · NO BOLSO ${s.notinhas}` : '';
+    const carrying = o.type === 'marmitas' && s.carrying ? ` · na mão ${s.carrying}`
+      : o.type === 'depositos' && s.notinhas ? ` · no bolso ${s.notinhas}` : '';
     return `${o.label} ${this.objectiveProgress()}/${o.meta}${carrying}`;
   }
 
+  /** Fala do Patrício (caixa de diálogo fixa no topo da tela, longe do cenário). */
   say(event, priority = 'normal') {
     const t = this.messages.say(event, 'any', priority);
-    if (t) this.balloon = { text: t, ttl: 2.6 };
+    if (t) this.dialog = { speaker: 'Patrício', text: t, ttl: 3 };
+  }
+
+  /** Mensagem de outra voz: o Grupo da Família ou uma dica de jogo. */
+  tell(speaker, text, ttl = 3.5) {
+    this.dialog = { speaker, text, ttl };
+  }
+
+  /** Próximo alvo do objetivo (para a seta que guia o jogador). */
+  objectiveTarget() {
+    const p = this.player;
+    const s = this.session;
+    const type = this.levelData.objective.type;
+    const nearest = (list) => {
+      let best = null;
+      for (const it of list) {
+        const d = Math.abs(it.x - p.x) + Math.abs(it.y - p.y) * 0.5;
+        if (!best || d < best.d) best = { d, x: it.x + it.w / 2, y: it.y };
+      }
+      return best;
+    };
+    if (this.objectiveDone()) { const F = this.level.entities.finish; return { x: F.x + 24, y: F.y + 8, kind: 'chegada' }; }
+    if (type === 'marmitas') {
+      if (s.carrying > 0) return { ...nearest(this.acampados.filter((a) => !a.fed).map((a) => ({ ...a, y: a.y + 24, h: 16 }))), kind: 'acampado' };
+      return { ...nearest(this.marmitas.filter((m) => !m.taken).map((m) => ({ x: m.drawX, y: m.drawY, w: 10, h: 6 }))), kind: 'marmita' };
+    }
+    if (type === 'urnas') return { ...nearest([...this.urnas.values()].filter((u) => !u.open).map((u) => ({ x: u.tx * TILE, y: u.ty * TILE, w: 16, h: 16 }))), kind: 'urna' };
+    if (type === 'depositos') {
+      if (s.notinhas > 0) return { ...nearest(this.caixas.map((c) => ({ x: c.drawX, y: c.drawY, w: 16, h: 28 }))), kind: 'caixa' };
+      return { ...nearest(this.notinhas.filter((n) => !n.taken).map((n) => ({ x: n.drawX, y: n.drawY, w: 10, h: 7 }))), kind: 'notinha' };
+    }
+    return null;
   }
 
   float(x, y, text, color = '#f5d000') {
@@ -205,8 +239,8 @@ export class MissaoGame {
     }
     for (const f of this.floats) { f.ttl -= dt; f.y -= 18 * dt; }
     this.floats = this.floats.filter((f) => f.ttl > 0);
-    if (this.balloon && (this.balloon.ttl -= dt) <= 0) this.balloon = null;
-    if (this.banner && (this.banner.ttl -= dt) <= 0) this.banner = null;
+    if (this.dialog && (this.dialog.ttl -= dt) <= 0) this.dialog = null;
+    this.clockFlash = Math.max(0, this.clockFlash - dt);
   }
 
   updatePlaying(inp, dt) {
@@ -221,9 +255,16 @@ export class MissaoGame {
     s.hours72 -= HOURS_PER_SECOND * dt;
     if (s.hours72 <= 0) {
       s.hours72 = HOURS72;
-      this.banner = { label: 'GRUPO', text: 'FALTAM 72 HORAS. AGORA VAI. (DE NOVO)', ttl: 2.5 };
-      this.say('clock', 'high');
+      this.clockResets++;
+      this.clockFlash = 1.5;
+      // só a primeira vez vira mensagem; depois, só o relógio pisca (menos interrupção)
+      if (this.clockResets === 1) this.tell('Grupo da Família', 'Faltam 72 horas. Agora vai. (De novo.)');
       this.sfx.play('clock');
+    }
+
+    // dicas do level design, mostradas uma vez quando o Patrício passa pela coluna
+    for (const h of this.levelData.hints ?? []) {
+      if (!this.hintsShown.has(h.col) && p.x >= h.col * TILE) { this.hintsShown.add(h.col); this.tell('Dica', h.text, 4.5); }
     }
 
     // temporizadores do jogador
@@ -258,7 +299,7 @@ export class MissaoGame {
         p.throwTimer = 0.2;
         this.zaps.push(createZap(p.facing > 0 ? p.x + p.w : p.x - 9, p.y + 6, p.facing));
         this.sfx.play('zap');
-      } else if (s.zap === 0) this.float(p.x + 5, p.y - 6, 'SEM BATERIA', '#ff6a6a');
+      } else if (s.zap === 0) this.float(p.x + 5, p.y - 6, 'Sem bateria', '#ff6a6a');
     }
 
     // inimigos
@@ -272,7 +313,7 @@ export class MissaoGame {
         else if (e.state === 'walk') {
           stunEnemy(e);
           this.sfx.play('bump');
-          this.float(e.x + 5, e.y - 6, e.kind === 'fiscal' ? 'FISCALIZAÇÃO ADIADA' : 'CHECAGEM ADIADA', '#9ad8ff');
+          this.float(e.x + 5, e.y - 6, e.kind === 'fiscal' ? 'Fiscalização adiada' : 'Checagem adiada', '#9ad8ff');
         }
       } else if (e.state === 'walk') {
         const event = e.kind === 'checador' ? 'checador' : e.kind === 'fiscal' ? 'fiscal' : 'hurt';
@@ -297,17 +338,17 @@ export class MissaoGame {
     const tileX = Math.floor(p.x / TILE);
     if (tileX > s.maxX) { s.score += tileX - s.maxX; s.maxX = tileX; }
     for (const v of E.votes) if (!v.taken && overlaps(p, v)) { v.taken = true; s.votes++; s.score += SCORE.vote; this.float(v.x + 4, v.y - 2, '+10'); this.sfx.play('coin'); }
-    for (const m of this.marmitas) if (!m.taken && overlaps(p, m)) { m.taken = true; s.carrying++; this.float(m.drawX + 5, m.drawY - 4, '+1 MARMITA', '#ffffff'); this.sfx.play('coin'); }
-    for (const c of this.chargers) if (!c.taken && overlaps(p, c)) { c.taken = true; s.zap += FE.ammoPickup; this.float(c.x + 4, c.y - 4, `+${FE.ammoPickup} ZAP`, '#7cf27c'); this.sfx.play('coin'); }
+    for (const m of this.marmitas) if (!m.taken && overlaps(p, m)) { m.taken = true; s.carrying++; this.float(m.drawX + 5, m.drawY - 4, '+1 marmita', '#ffffff'); this.sfx.play('coin'); }
+    for (const c of this.chargers) if (!c.taken && overlaps(p, c)) { c.taken = true; s.zap += FE.ammoPickup; this.float(c.x + 4, c.y - 4, `+${FE.ammoPickup} Zap`, '#7cf27c'); this.sfx.play('coin'); }
     for (const n of this.notinhas) {
       if (n.taken || !overlaps(p, n)) continue;
       if (s.notinhas >= FE.bolsoMax) {
-        if (this.gateCooldown === 0) { this.gateCooldown = 2; this.say('bolso', 'high'); this.float(p.x + 5, p.y - 8, 'BOLSO CHEIO!', '#ff6a6a'); }
+        if (this.gateCooldown === 0) { this.gateCooldown = 2; this.say('bolso', 'high'); this.float(p.x + 5, p.y - 8, 'Bolso cheio!', '#ff6a6a'); }
         continue;
       }
       n.taken = true;
       s.notinhas++;
-      this.float(n.drawX + 5, n.drawY - 4, '+1 NOTINHA', '#7cf27c');
+      this.float(n.drawX + 5, n.drawY - 4, '+1 notinha', '#7cf27c');
       this.sfx.play('coin');
     }
     for (const c of this.caixas) {
@@ -317,7 +358,7 @@ export class MissaoGame {
       const flagra = this.enemies.find((e) => fiscalSees(e, p));
       if (flagra) {
         // o Fiscal viu: notinhas confiscadas, Fé abalada
-        this.float(c.x + 10, c.y - 8, `FISCAL VIU! -${s.notinhas} NOTINHAS`, '#ff6a6a');
+        this.float(c.x + 10, c.y - 8, `Fiscal viu! −${s.notinhas} notinhas`, '#ff6a6a');
         s.notinhas = 0;
         s.fe = Math.max(0, s.fe - FE.hitFlagra);
         this.say('flagra', 'high');
@@ -327,13 +368,13 @@ export class MissaoGame {
         s.deposited += n;
         s.notinhas -= n;
         s.score += SCORE.deposito * n;
-        this.float(c.x + 10, c.y - 8, `DEPÓSITO FRACIONADO +${n}`, '#7cf27c');
+        this.float(c.x + 10, c.y - 8, `Depósito fracionado +${n}`, '#7cf27c');
         this.say('deposito', 'high');
         this.sfx.play('deliver');
       }
     }
     for (const d of this.pendrives) {
-      if (!d.taken && overlaps(p, d)) { d.taken = true; s.provas++; s.score += SCORE.pendrive; this.float(d.x + 4, d.y - 4, 'PROVA DA FRAUDE!'); this.say('pendrive', 'high'); this.sfx.play('coin'); }
+      if (!d.taken && overlaps(p, d)) { d.taken = true; s.provas++; s.score += SCORE.pendrive; this.float(d.x + 4, d.y - 4, 'Prova da fraude!'); this.say('pendrive', 'high'); this.sfx.play('coin'); }
     }
     for (const a of this.acampados) {
       a.timer += dt;
@@ -343,7 +384,7 @@ export class MissaoGame {
         s.carrying--;
         s.delivered++;
         s.score += SCORE.marmita;
-        this.float(a.x + 9, a.y + 24, `MARMITA ${s.delivered}/${this.levelData.objective.meta}`, '#7cf27c');
+        this.float(a.x + 9, a.y + 24, `Marmita ${s.delivered}/${this.levelData.objective.meta}`, '#7cf27c');
         this.say('marmita', 'high');
         this.sfx.play('deliver');
       }
@@ -358,7 +399,7 @@ export class MissaoGame {
         s.fe = FE.max;
         p.prayTimer = 0.8;
         p.vx = 0;
-        this.float(cp.x + 8, cp.y - 4, 'FÉ RESTAURADA', '#f5d000');
+        this.float(cp.x + 8, cp.y - 4, 'Fé restaurada', '#f5d000');
         this.say('checkpoint', 'high');
         this.sfx.play('checkpoint');
       }
@@ -370,7 +411,7 @@ export class MissaoGame {
         this.gateCooldown = 3;
         this.say(this.levelData.objective.type === 'marmitas' ? 'gate' : 'objetivo', 'high');
         const o = this.levelData.objective;
-        this.float(E.finish.x + 24, E.finish.y - 8, `FALTAM ${o.meta - this.objectiveProgress()} (${o.label})`, '#ff6a6a');
+        this.float(E.finish.x + 24, E.finish.y - 8, `Faltam ${o.meta - this.objectiveProgress()} (${o.label.toLowerCase()})`, '#ff6a6a');
       }
     }
 
@@ -409,7 +450,7 @@ export class MissaoGame {
     p.hurtTimer = 0.25;
     p.vx = dir * 150;
     p.vy = -200;
-    this.float(p.x + 5, p.y - 8, `-${amount} FÉ`, '#ff6a6a');
+    this.float(p.x + 5, p.y - 8, `−${amount} Fé`, '#ff6a6a');
     this.say(event, 'high');
     this.sfx.play('hurt');
   }

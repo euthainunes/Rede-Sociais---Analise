@@ -326,12 +326,13 @@ export function drawFakeBlock(ctx, x, y, visible = 1) {
 }
 
 /** Plataforma que cai ("Promessa de campanha"): placa de madeira escrita "PROMESSA". */
-export function drawPromessa(ctx, x, y, w = 40, shaking = false) {
+export function drawPromessa(ctx, x, y, w = 40, shaking = false, label = true) {
   const dx = shaking ? 1 : 0;
   rect(ctx, x + dx, y, w, 8, '#8a5a2a');
   rect(ctx, x + dx, y, w, 1, '#c08a4a');
   rect(ctx, x + dx, y + 7, w, 1, '#5a3a1a');
-  text(ctx, 'PROMESSA', x + dx + Math.round((w - measure('PROMESSA')) / 2), y + 2, { color: '#ffe8b0' });
+  if (label) text(ctx, 'PROMESSA', x + dx + Math.round((w - measure('PROMESSA')) / 2), y + 2, { color: '#ffe8b0' });
+  else for (let i = x + dx + 4; i < x + dx + w - 4; i += 9) rect(ctx, i, y + 3, 5, 1, '#5a3a1a'); // rachaduras
 }
 
 /** Plataforma móvel genérica (vaivém). */
@@ -473,5 +474,5 @@ export function drawCavalete(ctx, x, groundY) {
   rect(ctx, x + 1, groundY - 10, 2, 10, '#5a5a5a');
   rect(ctx, x + 13, groundY - 10, 2, 10, '#5a5a5a');
   for (let i = 0; i < 16; i += 4) rect(ctx, x + i, groundY - 12, 4, 4, (i / 4) % 2 ? '#ffffff' : '#ff7a1a');
-  text(ctx, 'OBRA', x + 8, groundY - 20, { color: '#ffffff', align: 'center', shadow: '#1a1a1a' });
+
 }

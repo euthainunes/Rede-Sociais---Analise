@@ -85,6 +85,8 @@ Testes das regras (Node 18+): `npm test`. Inclui um robô que conclui as fases 1
 
 > Sátira. Feito com auxílio de IA. Personagens são caricaturas; fatos com fonte na tela de Checagem.
 
+**Fontes tipográficas da interface:** [Tiny5](https://github.com/Gissio/font_tiny5) (texto) e [Jersey 10](https://github.com/scfried/soft-type-jersey) (títulos e números), ambas sob a SIL Open Font License 1.1. As licenças estão em `docs/fonts/`.
+
 ### Documentação
 
 - [Conceito atual: Operação Liberta o Mito (v3)](docs/BR-WAR-v3-liberta-o-mito.md)

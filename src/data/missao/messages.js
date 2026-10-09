@@ -8,7 +8,7 @@ export const MESSAGES_MISSAO = [
   ...any('hurt', 'Foi o Xandão.', 'Fraude no tropeço!', 'Isso aí foi a Globo.', 'Ataque comunista!', 'Perseguição!'),
   ...any('checador', 'Li uma checagem sem querer. Que dor.', 'Fonte? Que fonte? Eu tenho o Zap!', 'Não li, não vi, não acredito.'),
   ...any('zapSelf', 'Quem compartilhou isso?! ...ah, fui eu.', 'A corrente voltou! Deve ser sinal.', 'Recebi de mim mesmo. Repassando!'),
-  ...any('convert', 'ENCAMINHADO!', 'MAIS UM ACORDOU!', 'CONVERTIDO!', 'ENTROU PRO GRUPO!'),
+  ...any('convert', 'Encaminhado!', 'Entrou pro Grupo!', 'Convertido!', 'Mais um no Zap!'),
   ...any('marmita', 'Valeu, patriota! Só mais 72 horas.', 'Marmita de quartel tem gosto de vitória.', 'Comendo pelo Brasil!', 'Tem farofa? Tem fé.'),
   ...any('checkpoint', 'Senhor Pneu, iluminai o caminho.', 'Pneu abençoado. Progresso salvo.', 'Rezei pro pneu. Agora vai.'),
   ...any('death', 'Caí no buraco da obra parada. Coisa do PT.', 'Isso não foi queda. Foi fraude.', 'Levanta, patriota! O Mito precisa de você.'),
@@ -25,8 +25,8 @@ export const MESSAGES_MISSAO = [
 ];
 
 export const HEADLINES_MISSAO = {
-  complete: ['O PORTÃO NÃO ABRIU, MAS A FÉ CONTINUA INTACTA', 'PATRIOTA ENTREGA MARMITAS E AGUARDA AS 72 HORAS (PELA 14ª VEZ)'],
-  chocolate: ['PATRIOTA DEPOSITA TUDO EM ESPÉCIE E JURA: É SÓ BOMBOM', 'MANSÃO ATINGIDA. O PATRÍCIO CONTINUA MORANDO DE ALUGUEL'],
-  urnas: ['PATRIOTA AUDITA 10 URNAS E CONCLUI: FRAUDE PERFEITA, SEM DEIXAR NENHUMA PROVA', 'SALA DO CÓDIGO-FONTE TINHA SÓ UM CAFEZINHO FRIO'],
-  gameover: ['VOCÊ ACORDOU.'],
+  complete: ['O portão não abriu, mas a fé continua intacta', 'Patriota entrega marmitas e aguarda as 72 horas (pela 14ª vez)'],
+  chocolate: ['Patriota deposita tudo em espécie e jura: é só bombom', 'Mansão atingida. O Patrício continua morando de aluguel'],
+  urnas: ['Patriota audita 10 urnas e conclui: fraude perfeita, sem deixar nenhuma prova', 'Sala do código-fonte tinha só um cafezinho frio'],
+  gameover: ['Você acordou.'],
 };

@@ -253,7 +253,7 @@ test('fase 3: notinhas suficientes, caixas de depósito e Checagem com status do
   assert.ok(run.notinhas.length >= CHOCOLATE.objective.meta + 2);
   assert.ok(run.caixas.length >= 4);
   const c = CHECAGEM.chocolate;
-  assert.ok(c.itens.some((i) => i.tag === 'STATUS' && i.texto.includes('NEGA')), 'acusação precisa vir com status e defesa');
+  assert.ok(c.itens.some((i) => i.tag === 'STATUS' && i.texto.toLowerCase().includes('nega')), 'acusação precisa vir com status e defesa');
   assert.ok(c.itens.some((i) => i.tag === 'ACUSAÇÃO'));
   assert.ok(c.fontes.every((f) => f.url.startsWith('https://')));
 });

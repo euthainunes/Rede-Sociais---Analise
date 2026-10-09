@@ -11,12 +11,12 @@ export const QUARTEL = {
   id: 'quartel',
   numero: 1,
   ano: '2022',
-  name: 'ACAMPAMENTO DO QUARTEL',
+  name: 'Acampamento do Quartel',
   theme: 'quartel',
   background: 'quartel',
   targetTime: 150,
-  objective: { type: 'marmitas', meta: 5, label: 'MARMITAS' },
-  finishLabel: 'QUARTEL',
+  objective: { type: 'marmitas', meta: 5, label: 'Marmitas' },
+  finishLabel: 'Quartel',
   map: [
     '........................................................................................................................................................',
     '........................................................................................................................................................',
@@ -33,10 +33,12 @@ export const QUARTEL = {
     '##############################..##################################.....##############################...################################################',
     '##############################..##################################.....##############################...################################################',
   ],
-  signs: [
-    { col: 7, lines: ['▲ PULA', 'X COMPARTILHA'], color: '#ffffff' },
-    { col: 15, lines: ['ENTREGUE A', 'MARMITA AO', 'ACAMPADO'], color: '#f5d000' },
-    { col: 52, lines: ['CHECADOR:', 'NÃO ENCOSTE.', 'NÃO LEIA.'], color: '#ffffff' },
-    { col: 136, lines: ['QUARTEL ▶'], color: '#f5d000' },
+  signs: [], // sem placas no cenário: as dicas aparecem na caixa de fala
+  hints: [
+    { col: 6, text: 'Pegue a marmita e entregue a um acampado (o patriota com o balãozinho de marmita).' },
+    { col: 11, text: 'X compartilha corrente de Zap. Cuidado: se não acertar ninguém, ela volta em você!' },
+    { col: 45, text: 'Checador de Fatos: não encoste, ele derruba sua Fé. Pular em cima só adia a checagem.' },
+    { col: 56, text: 'Pneu sagrado: o Patrício reza, salva o progresso e recupera a Fé.' },
+    { col: 64, text: 'Plataforma PROMESSA: cai logo depois que você pisa. Não demore!' },
   ],
 };

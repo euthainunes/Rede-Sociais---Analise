@@ -8,12 +8,14 @@
 <style>
   html, body { margin: 0; height: 100%; background: #0e1424; overflow: hidden; }
   body { display: flex; align-items: center; justify-content: center; touch-action: none; user-select: none; -webkit-user-select: none; }
+  #tela { position: relative; }
   canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; outline: none; }
+  #ui { position: absolute; left: 0; top: 0; pointer-events: none; image-rendering: auto; }
   noscript { color: #fff; font: 16px system-ui, sans-serif; padding: 16px; }
 </style>
 </head>
 <body>
-<canvas id="game" tabindex="0" aria-label="BR-WAR: jogo de plataforma satírico"></canvas>
+<div id="tela"><canvas id="game" tabindex="0" aria-label="BR-WAR: jogo de plataforma satírico"></canvas><canvas id="ui" aria-hidden="true"></canvas></div>
 <noscript>BR-WAR precisa de JavaScript para rodar.</noscript>
 <script type="module" src="src/missao.js"></script>
 </body>
