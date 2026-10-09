@@ -1,6 +1,7 @@
 import { listMatchQueue, listVariantsForPicker } from "@veredito/db/admin";
 import { PROGRAMS } from "@veredito/integrations";
-import { decideMatchAction, importFeedAction } from "../../actions";
+import { listFeedSources } from "@veredito/db/jobs";
+import { addFeedSourceAction, decideMatchAction, importFeedAction, toggleFeedSourceAction } from "../../actions";
 import { Flash } from "../../Flash";
 import { requireStaff } from "@/lib/admin";
 
@@ -9,7 +10,7 @@ SKU-1,Smartphone Órbita S9 256GB Preto,https://loja.example/p/1,"2.749,00","3.2
 
 export default async function OffersAdmin({ searchParams }: { searchParams: Promise<{ ok?: string; erro?: string }> }) {
   const { sql } = await requireStaff("offers:write");
-  const [queue, variants] = await Promise.all([listMatchQueue(sql), listVariantsForPicker(sql)]);
+  const [queue, variants, feeds] = await Promise.all([listMatchQueue(sql), listVariantsForPicker(sql), listFeedSources(sql)]);
   return (
     <>
       <h1>Ofertas e matching</h1>
@@ -39,6 +40,45 @@ export default async function OffersAdmin({ searchParams }: { searchParams: Prom
           </div>
           <label>…ou cole o conteúdo<textarea name="content" rows={5} placeholder={EXAMPLE} /></label>
           <button className="btn btn-primary" type="submit">Importar</button>
+        </form>
+      </section>
+
+      <section className="card" style={{ marginTop: 16 }}>
+        <h2 style={{ marginTop: 0 }}>Feeds agendados</h2>
+        <p className="small muted">O worker baixa cada feed no intervalo definido (só endereços https públicos), importa e associa as ofertas. Falhas viram alerta na visão geral.</p>
+        {feeds.length > 0 && (
+          <div className="table-scroll"><table>
+            <thead><tr><th>Loja</th><th>Formato</th><th>Intervalo</th><th>Última coleta</th><th></th></tr></thead>
+            <tbody>{feeds.map((f) => (
+              <tr key={f.id}>
+                <td>{f.merchant}<br /><span className="small muted">{f.url}</span></td>
+                <td>{f.format}</td><td>{f.interval_minutes} min</td>
+                <td className="small">{f.last_run_at ? f.last_run_at.toLocaleString("pt-BR") : "nunca"}{" "}
+                  {f.last_status && <span className={`badge ${f.last_status === "ok" ? "good" : "high"}`}>{f.last_status}</span>}
+                  {f.last_error && <><br /><span className="muted">{f.last_error}</span></>}
+                </td>
+                <td>
+                  <form action={toggleFeedSourceAction}>
+                    <input type="hidden" name="id" value={f.id} /><input type="hidden" name="active" value={f.active ? "0" : "1"} />
+                    <button className="btn btn-ghost btn-sm" type="submit">{f.active ? "Pausar" : "Ativar"}</button>
+                  </form>
+                </td>
+              </tr>
+            ))}</tbody>
+          </table></div>
+        )}
+        <form action={addFeedSourceAction} className="inline" style={{ marginTop: 12 }}>
+          <label>Loja<input type="text" name="merchant" required /></label>
+          <label>URL do feed (https)<input type="url" name="url" required pattern="https://.*" placeholder="https://..." /></label>
+          <label>Formato<select name="format" defaultValue="planilha"><option value="planilha">Planilha CSV</option><option value="awin">Awin</option></select></label>
+          <label>A cada (min)<input type="number" name="interval" defaultValue={180} min={30} step={30} /></label>
+          <label>Programa
+            <select name="programKey" defaultValue="">
+              <option value="">Nenhum</option>
+              {PROGRAMS.map((p) => <option key={p.key} value={p.key}>{p.name}</option>)}
+            </select>
+          </label>
+          <button className="btn btn-primary btn-sm" type="submit">Agendar</button>
         </form>
       </section>
 

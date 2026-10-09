@@ -13,6 +13,8 @@ import {
   addVariant, decideMatch, importFeed, login, logout, refreshInternalAlerts, saveContent, saveProduct, transitionContent,
   SESSION_HOURS, type ContentKind, type ContentStatus, type FeedFormat, type SpecSourceKind,
 } from "@veredito/db/admin";
+import { addFeedSource, setFeedSourceActive } from "@veredito/db/jobs";
+import { resolveAlert } from "@veredito/db/admin";
 import { ADMIN_COOKIE, adminSql, errorMessage, parseSections, requestFingerprint, requireStaff } from "@/lib/admin";
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
@@ -169,4 +171,29 @@ export async function transitionContentAction(form: FormData) {
   }
   publicChanged();
   redirect(back(`/admin/conteudo/${id}`, "ok", "Status atualizado."));
+}
+
+export async function addFeedSourceAction(form: FormData) {
+  const { staff, sql } = await requireStaff("offers:write");
+  try {
+    await addFeedSource(sql, staff, {
+      merchantName: str(form, "merchant"), programKey: str(form, "programKey") || null, url: str(form, "url"),
+      format: (str(form, "format") || "planilha") as FeedFormat, intervalMinutes: Number(str(form, "interval")) || 180,
+    });
+  } catch (e) {
+    redirect(back("/admin/ofertas", "erro", errorMessage(e)));
+  }
+  redirect(back("/admin/ofertas", "ok", "Feed agendado. O worker coleta no próximo ciclo."));
+}
+
+export async function toggleFeedSourceAction(form: FormData) {
+  const { staff, sql } = await requireStaff("offers:write");
+  await setFeedSourceActive(sql, staff, str(form, "id"), form.get("active") === "1");
+  redirect(back("/admin/ofertas", "ok", "Feed atualizado."));
+}
+
+export async function resolveAlertAction(form: FormData) {
+  const { sql } = await requireStaff("offers:write");
+  await resolveAlert(sql, str(form, "id"));
+  redirect(back("/admin", "ok", "Alerta marcado como resolvido."));
 }

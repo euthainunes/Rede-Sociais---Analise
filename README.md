@@ -7,6 +7,7 @@ Plataforma de decisão de compra: notas com metodologia aberta, histórico real 
 ## Estrutura
 
 ```
+apps/worker            rotinas automáticas: coleta de feeds, histórico diário, links, alertas
 apps/web               Next.js 16 — site público (SSR, sem JS obrigatório), /go (afiliados), /api/e (eventos)
 packages/core          domínio puro: preço, notas, Fit Score, melhor oferta, matching, comparador, categorias
 packages/integrations  adaptadores de afiliados (Amazon, Awin, template p/ Mercado Livre, Magalu, Shopee)
@@ -51,6 +52,26 @@ ADMIN_PASSWORD='uma-senha-com-12+-caracteres' pnpm --filter @veredito/db create-
 | Auditoria | Registro somente de inclusão de toda escrita | admin, editor-chefe |
 
 Segurança: senha (scrypt) + TOTP obrigatório; bloqueio de 15 minutos após 5 falhas; sessão de 8 h com cookie `HttpOnly`/`SameSite=Strict`, cujo hash fica no banco; permissões checadas em toda página e toda ação no servidor; comercial não edita notas e editor não vê comissão.
+
+### Worker (rotinas automáticas)
+
+```bash
+pnpm --filter @veredito/worker start            # processo contínuo (agendador interno)
+pnpm --filter @veredito/worker once all         # roda tudo uma vez e sai (para cron externo)
+pnpm --filter @veredito/worker once check-links # um job específico
+```
+
+| Job | Frequência | O que faz |
+|---|---|---|
+| `fetch-feeds` | 5 min (respeita o intervalo de cada feed) | Baixa os feeds agendados no painel, importa e associa ofertas; falha vira alerta |
+| `rollup-daily` | 30 min | Fecha o histórico do dia (e de ontem) a partir das observações de preço, sem anomalias |
+| `check-links` | 15 min (40 ofertas por vez) | 404 ou redirecionamento para a home → oferta quebrada; "produto indisponível" → sem estoque |
+| `expire-stale-offers` | 1 h | Oferta que nenhuma fonte confirma há 7 dias sai do site (o histórico fica) |
+| `flag-content-review` | 1 h | Conteúdo publicado com revisão vencida vai para "Atualização necessária" |
+| `refresh-alerts` | 30 min | Recalcula os alertas internos |
+| `maintain-partitions` | diário | Cria as partições mensais de preços, eventos e cliques |
+
+Várias instâncias podem rodar juntas: cada job tem um *lease* no banco, que expira sozinho se o processo cair. Toda execução fica em `ops.job_run` e aparece na visão geral do painel. Preço fora de ±60% da mediana de 90 dias pausa a oferta e abre alerta. O acesso de rede tem proteção contra SSRF: só https e só IPs públicos. Sem servidor dedicado, o workflow `.github/workflows/worker.yml` roda tudo a cada 15 minutos (basta configurar o segredo `WORKER_DATABASE_URL`).
 
 Variáveis de ambiente: [`.env.example`](./.env.example). Sem `ANTHROPIC_API_KEY`, o consultor funciona em modo template (a seleção de produtos é determinística; a IA só redige a explicação).
 

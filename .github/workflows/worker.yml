@@ -1,0 +1,38 @@
+# Alternativa de baixo custo ao worker contínuo: roda todos os jobs a cada 15 minutos.
+# Só executa se o segredo WORKER_DATABASE_URL estiver configurado no repositório.
+name: Worker (agendado)
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: worker
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: ${{ secrets.WORKER_DATABASE_URL }}
+      WEB_URL: ${{ secrets.WEB_URL }}
+      INTERNAL_TOKEN: ${{ secrets.INTERNAL_TOKEN }}
+    steps:
+      - name: Verificar configuração
+        id: cfg
+        run: |
+          if [ -z "$DATABASE_URL" ]; then echo "WORKER_DATABASE_URL não configurado; nada a fazer."; echo "skip=1" >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/checkout@v4
+        if: steps.cfg.outputs.skip != '1'
+      - uses: pnpm/action-setup@v4
+        if: steps.cfg.outputs.skip != '1'
+      - uses: actions/setup-node@v4
+        if: steps.cfg.outputs.skip != '1'
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        if: steps.cfg.outputs.skip != '1'
+      - run: pnpm db:migrate && pnpm --filter @veredito/worker once all
+        if: steps.cfg.outputs.skip != '1'

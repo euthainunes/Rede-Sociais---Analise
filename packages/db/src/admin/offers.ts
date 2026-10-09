@@ -3,7 +3,7 @@
  * Atualiza o rollup diário de preço das variantes afetadas.
  */
 import { randomUUID } from "node:crypto";
-import { matchListing, slugify, type MatchResult, type VariantCandidate } from "@veredito/core";
+import { isPriceAnomaly, matchListing, slugify, type MatchResult, type VariantCandidate } from "@veredito/core";
 import { createAwinAdapter, createTemplateAdapter, type RawOffer } from "@veredito/integrations";
 import type { Sql } from "../client.ts";
 import { audit } from "./audit.ts";
@@ -19,7 +19,7 @@ function parseFeed(format: FeedFormat, content: string): RawOffer[] {
   return adapter.parseFeed!(content);
 }
 
-export async function ensureMerchant(sql: Sql, staff: Staff, name: string, programKey: string | null = null): Promise<string> {
+export async function ensureMerchant(sql: Sql, staff: Staff | null, name: string, programKey: string | null = null): Promise<string> {
   const slug = slugify(name);
   const [m] = await sql<{ id: string }[]>`SELECT id FROM commerce.merchant WHERE slug = ${slug}`;
   if (m) return m.id;
@@ -37,24 +37,44 @@ async function variantCandidates(sql: Sql): Promise<VariantCandidate[]> {
   return rows.map((r) => ({ variantId: r.id, brand: r.brand, model: r.model || r.name.replace(r.brand, "").trim(), gtin: r.gtin, mpn: r.mpn, axes: r.axes }));
 }
 
+async function median90(sql: Sql, variantId: string): Promise<number | null> {
+  const [r] = await sql<{ m: number | null }[]>`
+    SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY min_price)::float AS m
+    FROM pricing.price_daily WHERE variant_id = ${variantId} AND day > current_date - 90`;
+  return r?.m ?? null;
+}
+
+/**
+ * Grava a oferta e a observação de preço. Preço fora de ±60% da mediana de 90 dias é tratado como erro
+ * provável: a observação é marcada como anomalia, a oferta fica pausada (não aparece no site) e um alerta é aberto.
+ */
 async function upsertOffer(sql: Sql, merchantId: string, sourceId: string, variantId: string, o: RawOffer, match: { status: "auto" | "confirmed"; confidence: number }) {
   const id = randomUUID();
+  const anomaly = o.priceCash != null && isPriceAnomaly(o.priceCash, await median90(sql, variantId));
+  const status = anomaly ? "paused" : "active";
   const [row] = await sql<{ id: string }[]>`
     INSERT INTO commerce.offer (id, variant_id, merchant_id, seller_name, condition, external_id, title_raw, url_original,
       price_cash, price_installment, installments, price_list, shipping_cost, availability, match_status, match_confidence,
-      source_id, last_checked_at)
+      source_id, last_checked_at, status)
     VALUES (${id}, ${variantId}, ${merchantId}, ${o.sellerName ?? ""}, ${o.condition}, ${o.externalId}, ${o.title}, ${o.url},
       ${o.priceCash}, ${o.priceInstallment ?? null}, ${o.installments ?? null}, ${o.priceList ?? null}, ${o.shippingCost ?? null},
-      ${o.availability}, ${match.status}, ${match.confidence}, ${sourceId}, now())
+      ${o.availability}, ${match.status}, ${match.confidence}, ${sourceId}, now(), ${status})
     ON CONFLICT (merchant_id, external_id, seller_name, condition) DO UPDATE SET
       variant_id = EXCLUDED.variant_id, price_cash = EXCLUDED.price_cash, price_installment = EXCLUDED.price_installment,
       installments = EXCLUDED.installments, price_list = EXCLUDED.price_list, shipping_cost = EXCLUDED.shipping_cost,
       availability = EXCLUDED.availability, url_original = EXCLUDED.url_original, title_raw = EXCLUDED.title_raw,
-      match_status = EXCLUDED.match_status, match_confidence = EXCLUDED.match_confidence, last_checked_at = now(), status = 'active'
+      match_status = EXCLUDED.match_status, match_confidence = EXCLUDED.match_confidence, last_checked_at = now(),
+      status = CASE WHEN commerce.offer.status = 'broken' AND NOT ${anomaly} THEN 'broken' ELSE EXCLUDED.status END
     RETURNING id`;
   await sql`
-    INSERT INTO pricing.price_observation (offer_id, variant_id, observed_at, price_cash, price_installment, price_list, shipping_cost, availability, source_id)
-    VALUES (${row!.id}, ${variantId}, now(), ${o.priceCash}, ${o.priceInstallment ?? null}, ${o.priceList ?? null}, ${o.shippingCost ?? null}, ${o.availability}, ${sourceId})`;
+    INSERT INTO pricing.price_observation (offer_id, variant_id, observed_at, price_cash, price_installment, price_list, shipping_cost, availability, source_id, is_anomaly)
+    VALUES (${row!.id}, ${variantId}, now(), ${o.priceCash}, ${o.priceInstallment ?? null}, ${o.priceList ?? null}, ${o.shippingCost ?? null}, ${o.availability}, ${sourceId}, ${anomaly})`;
+  if (anomaly) {
+    await sql`
+      INSERT INTO ops.internal_alert (id, kind, severity, entity_type, entity_id, details)
+      VALUES (${randomUUID()}, 'price_anomaly', 'high', 'offer', ${row!.id}, ${sql.json({ title: o.title, price: o.priceCash } as never)})
+      ON CONFLICT (kind, entity_type, entity_id) WHERE status = 'open' DO UPDATE SET details = EXCLUDED.details`;
+  }
   return row!.id;
 }
 
@@ -86,12 +106,21 @@ export interface ImportStats {
   runId: string;
 }
 
-export async function importFeed(
-  sql: Sql,
-  staff: Staff,
-  input: { merchantName: string; programKey?: string | null; format: FeedFormat; content: string },
-): Promise<ImportStats> {
+export interface ImportInput {
+  merchantName: string;
+  programKey?: string | null;
+  format: FeedFormat;
+  content: string;
+}
+
+/** Importação pelo painel (exige permissão). */
+export async function importFeed(sql: Sql, staff: Staff, input: ImportInput): Promise<ImportStats> {
   requirePermission(staff, "offers:write");
+  return importOffers(sql, staff, input);
+}
+
+/** Núcleo da importação; `actor = null` = worker (sistema). */
+export async function importOffers(sql: Sql, staff: Staff | null, input: ImportInput): Promise<ImportStats> {
   if (input.content.length > 5_000_000) throw new ValidationError(["arquivo maior que 5 MB"]);
   const offers = parseFeed(input.format, input.content);
   if (offers.length === 0) throw new ValidationError(["nenhuma oferta reconhecida — confira o cabeçalho das colunas"]);

@@ -4,10 +4,11 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { HashingEmbedder, indexDocument, retrieve } from "@veredito/ai";
-import { createSql, type Sql } from "./client.ts";
-import { PgKnowledgeStore } from "./knowledge-store.ts";
+import type { Sql } from "./client.ts";
+import { createTestDatabase } from "./test-db.ts";
 import { migrate } from "./migrate.ts";
 import { seedDemo } from "./seed.ts";
+import { PgKnowledgeStore } from "./knowledge-store.ts";
 import { CatalogService } from "./services.ts";
 import { createDemoSource, createPgSource } from "./source.ts";
 import { DEMO_TODAY } from "./demo-data.ts";
@@ -19,16 +20,16 @@ describe.skipIf(!url)("Postgres", () => {
   let pg: CatalogService;
   const demo = new CatalogService(createDemoSource());
 
+  let drop: () => Promise<void>;
+
   beforeAll(async () => {
-    sql = createSql(url!, { max: 2, onnotice: () => {} });
-    await migrate(sql);
-    await seedDemo(sql);
+    ({ sql, drop } = await createTestDatabase(url!, "pg"));
     // Âncora "hoje" na data dos dados de demonstração para comparar com o modo demo.
     pg = new CatalogService({ ...createPgSource(sql, { today: () => DEMO_TODAY }), mode: "demo" });
   }, 60_000);
 
   afterAll(async () => {
-    await sql?.end();
+    await drop?.();
   });
 
   it("is idempotent (migrate + seed twice)", async () => {

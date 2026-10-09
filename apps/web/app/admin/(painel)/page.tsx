@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ALERT_LABELS, dashboardMetrics, listOpenAlerts } from "@veredito/db/admin";
-import { refreshAlertsAction } from "../actions";
+import { lastRuns } from "@veredito/db/jobs";
+import { refreshAlertsAction, resolveAlertAction } from "../actions";
 import { Flash } from "../Flash";
 import { requireStaff } from "@/lib/admin";
 
@@ -10,7 +11,7 @@ export default async function Dashboard({ searchParams }: Props) {
   const sp = await searchParams;
   const { sql } = await requireStaff("dashboard:read");
   const days = [7, 30, 90].includes(Number(sp.dias)) ? Number(sp.dias) : 7;
-  const [m, alerts] = await Promise.all([dashboardMetrics(sql, days), listOpenAlerts(sql)]);
+  const [m, alerts, runs] = await Promise.all([dashboardMetrics(sql, days), listOpenAlerts(sql), lastRuns(sql)]);
   const maxDay = Math.max(1, ...m.daily.map((d) => d.clicks));
   return (
     <>
@@ -56,7 +57,7 @@ export default async function Dashboard({ searchParams }: Props) {
       <form action={refreshAlertsAction}><button className="btn btn-ghost btn-sm" type="submit">Recalcular alertas</button></form>
       {alerts.length ? (
         <table style={{ marginTop: 8 }}>
-          <thead><tr><th>Gravidade</th><th>Tipo</th><th>Item</th><th>Desde</th></tr></thead>
+          <thead><tr><th>Gravidade</th><th>Tipo</th><th>Item</th><th>Desde</th><th></th></tr></thead>
           <tbody>
             {alerts.map((a) => (
               <tr key={a.id}>
@@ -68,11 +69,28 @@ export default async function Dashboard({ searchParams }: Props) {
                     : String(a.details.title ?? a.details.pending ?? "")}
                 </td>
                 <td className="small">{a.created_at.toLocaleDateString("pt-BR")}</td>
+                <td>{(a.kind === "price_anomaly" || a.kind === "feed_error") && (
+                  <form action={resolveAlertAction}><input type="hidden" name="id" value={a.id} /><button className="btn btn-ghost btn-sm" type="submit">Resolvido</button></form>
+                )}</td>
               </tr>
             ))}
           </tbody>
         </table>
       ) : <p className="muted">Nenhum alerta aberto.</p>}
+      <h2>Rotinas automáticas (worker)</h2>
+      {runs.length ? (
+        <table>
+          <thead><tr><th>Job</th><th>Última execução</th><th>Status</th><th>Resultado</th></tr></thead>
+          <tbody>{runs.map((r) => (
+            <tr key={r.job}>
+              <td>{r.job}</td>
+              <td className="small">{r.started_at.toLocaleString("pt-BR")}</td>
+              <td><span className={`badge ${r.status === "ok" ? "good" : r.status === "running" ? "normal" : "high"}`}>{r.status}</span></td>
+              <td className="small muted">{r.error ?? JSON.stringify(r.result ?? {})}</td>
+            </tr>
+          ))}</tbody>
+        </table>
+      ) : <p className="muted">O worker ainda não rodou. Inicie com <code>pnpm --filter @veredito/worker start</code>.</p>}
       <p className="small muted">Receita e comissões entram aqui quando a importação de conversões estiver ligada (visível só para administrador e comercial).</p>
     </>
   );

@@ -51,12 +51,21 @@ export const ALERT_LABELS: Record<string, string> = {
   no_review: "Produto sem review",
   matching_backlog: "Fila de matching acumulada",
   content_outdated: "Conteúdo com revisão vencida",
+  price_anomaly: "Preço anormal (oferta pausada)",
+  feed_error: "Falha ao coletar feed",
 };
 
 /**
  * Recalcula alertas: abre os que surgiram, resolve os que deixaram de valer.
  * Idempotente (índice único por tipo+entidade enquanto aberto).
  */
+/** Alertas recalculados a partir do estado atual. Os de evento (preço anormal, falha de feed) são resolvidos por ação humana ou pelo próprio job. */
+const COMPUTED_KINDS = ["stale_price", "no_offer", "broken_link", "no_review", "content_outdated", "matching_backlog"];
+
+export async function resolveAlert(sql: Sql, id: string): Promise<void> {
+  await sql`UPDATE ops.internal_alert SET status = 'resolved', resolved_at = now() WHERE id = ${id} AND status = 'open'`;
+}
+
 export async function refreshInternalAlerts(sql: Sql): Promise<{ opened: number; resolved: number }> {
   type Found = { kind: string; severity: string; entity_type: string; entity_id: string; details: Record<string, unknown> };
   const found: Found[] = [
@@ -102,7 +111,7 @@ export async function refreshInternalAlerts(sql: Sql): Promise<{ opened: number;
   const keys = found.map((f) => `${f.kind}|${f.entity_id}`);
   const resolved = await sql`
     UPDATE ops.internal_alert SET status = 'resolved', resolved_at = now()
-    WHERE status = 'open' AND NOT ((kind || '|' || entity_id::text) = ANY(${keys}))
+    WHERE status = 'open' AND kind = ANY(${COMPUTED_KINDS}) AND NOT ((kind || '|' || entity_id::text) = ANY(${keys}))
     RETURNING id`;
   return { opened, resolved: resolved.length };
 }

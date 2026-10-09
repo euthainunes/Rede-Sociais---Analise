@@ -1,8 +1,7 @@
 /** Fluxo completo do admin contra Postgres real (TEST_DATABASE_URL). */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createSql, type Sql } from "../client.ts";
-import { migrate } from "../migrate.ts";
-import { seedDemo } from "../seed.ts";
+import type { Sql } from "../client.ts";
+import { createTestDatabase } from "../test-db.ts";
 import { CatalogService } from "../services.ts";
 import { createPgSource } from "../source.ts";
 import {
@@ -15,6 +14,7 @@ const PASSWORD = "senha-de-teste-bem-longa";
 
 describe.skipIf(!url)("admin (Postgres)", () => {
   let sql: Sql;
+  let drop: () => Promise<void>;
   let admin: Staff;
   let editor: Staff;
   let editorSecret: string;
@@ -23,9 +23,7 @@ describe.skipIf(!url)("admin (Postgres)", () => {
   let productSlug = "";
 
   beforeAll(async () => {
-    sql = createSql(url!, { max: 2, onnotice: () => {} });
-    await migrate(sql);
-    await seedDemo(sql);
+    ({ sql, drop } = await createTestDatabase(url!, "admin"));
     const a = await createStaff(sql, { email: `admin-${tag}@ex.com`, name: "Admin Teste", role: "admin", password: PASSWORD });
     const e = await createStaff(sql, { email: `editor-${tag}@ex.com`, name: "Editora Teste", role: "editor", password: PASSWORD });
     editorSecret = e.totpSecret;
@@ -36,7 +34,7 @@ describe.skipIf(!url)("admin (Postgres)", () => {
   }, 60_000);
 
   afterAll(async () => {
-    await sql?.end();
+    await drop?.();
   });
 
   it("requires password AND TOTP, and locks after repeated failures", async () => {
