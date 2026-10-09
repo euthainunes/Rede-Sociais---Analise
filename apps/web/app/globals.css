@@ -175,6 +175,8 @@ mark, .hl { background: linear-gradient(transparent 58%, var(--mark) 58% 92%, tr
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 20px; border-radius: 999px; font: inherit; font-weight: 700; font-size: var(--t-md); line-height: 1.2; text-decoration: none; border: 1px solid transparent; cursor: pointer; white-space: nowrap;
   transition: background var(--ease), border-color var(--ease), color var(--ease), transform var(--ease), box-shadow var(--ease); }
 .btn:hover { text-decoration: none; }
+.btn:not(.btn-primary, .btn-ghost, .btn-dark, .btn-mark, .btn-danger) { background: var(--surface); color: var(--ink); border-color: var(--line-strong); }
+.btn:not(.btn-primary, .btn-ghost, .btn-dark, .btn-mark, .btn-danger):hover { border-color: var(--ink); }
 .btn:active { transform: translateY(1px); }
 .btn:disabled, .btn[aria-disabled="true"] { opacity: .5; cursor: not-allowed; transform: none; }
 .btn-primary { background: var(--brand); color: var(--brand-ink); box-shadow: 0 1px 2px rgb(14 18 34 / 18%); }
@@ -568,17 +570,45 @@ form.inline { display: flex; gap: var(--s3); flex-wrap: wrap; align-items: end; 
 /* Alvo de toque mínimo (WCAG 2.5.8): links empilhados em tabelas e listas densas */
 .tap { display: block; min-height: 24px; padding: 2px 0; line-height: 20px; }
 
-/* ---------- Admin (mesmos tokens, layout próprio) ---------- */
-.admin { display: grid; grid-template-columns: 1fr; min-height: 100vh; }
-@media (min-width: 900px) { .admin { grid-template-columns: 232px 1fr; } }
-.admin-nav { background: var(--hero); color: var(--hero-soft); padding: var(--s4); display: flex; flex-direction: column; gap: 2px; }
-.admin-nav strong { color: var(--hero-ink); margin-bottom: 2px; }
-.admin-nav .small.muted { color: var(--hero-soft); margin-bottom: var(--s3); }
-.admin-nav a { color: var(--hero-ink); text-decoration: none; padding: 8px 10px; border-radius: 8px; font-size: var(--t-sm); font-weight: 600; }
-.admin-nav a:hover { background: rgb(255 255 255 / 8%); }
+/* ---------- Admin (mesmos tokens, densidade maior) ---------- */
+.admin { display: grid; grid-template-columns: minmax(0, 1fr); min-height: 100vh; }
+@media (min-width: 900px) { .admin { grid-template-columns: 240px minmax(0, 1fr); } }
+.admin-nav { background: var(--hero); color: var(--hero-soft); padding: var(--s4); display: flex; flex-direction: column; gap: var(--s4); }
+@media (min-width: 900px) { .admin-nav { position: sticky; top: 0; height: 100vh; overflow-y: auto; align-self: start; } }
+.admin-brand { display: grid; gap: 2px; }
+.admin-brand .logo, .admin-login .logo { grid-area: auto; justify-self: start; }
+.admin-brand .logo { color: var(--hero-ink); min-height: 36px; }
+.admin-brand .small { color: var(--hero-soft); }
+.admin-links { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; margin-inline: calc(-1 * var(--s2)); }
+@media (min-width: 900px) { .admin-links { flex-direction: column; overflow: visible; } }
+.admin-nav a { color: var(--hero-soft); text-decoration: none; padding: 8px 10px; border-radius: 8px; font-size: var(--t-sm); font-weight: 600; white-space: nowrap; transition: background var(--ease), color var(--ease); }
+.admin-nav a:hover { background: rgb(255 255 255 / 8%); color: var(--hero-ink); }
+.admin-nav a[aria-current="page"] { background: rgb(255 255 255 / 10%); color: var(--hero-ink); box-shadow: inset 3px 0 0 var(--mark); }
+.admin-foot { display: flex; gap: var(--s3); align-items: center; justify-content: space-between; }
+@media (min-width: 900px) { .admin-foot { margin-top: auto; } }
 .admin-nav .btn-ghost { background: transparent; color: var(--hero-ink); border-color: rgb(255 255 255 / 25%); }
-.admin-main { padding: var(--s5); min-width: 0; }
-.admin-main table { background: var(--surface); }
+.admin-main { padding: var(--s5) var(--s4) var(--s7); min-width: 0; font-size: var(--t-sm); }
+@media (min-width: 900px) { .admin-main { padding: var(--s6) var(--s6) var(--s7); } }
+.admin-main h1 { font-size: var(--t-3xl); margin-bottom: var(--s4); }
+.admin-main h2 { font-size: var(--t-xl); margin-top: var(--s6); }
+.admin-main h3 { font-size: var(--t-md); }
+.admin-main table { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); border-collapse: separate; border-spacing: 0; overflow: hidden; }
+.admin-main tbody tr:last-child td, .admin-main tbody tr:last-child th { border-bottom: 0; }
+.admin-main tbody tr:hover { background: color-mix(in srgb, var(--bg-soft) 60%, transparent); }
+.admin-main td a { font-weight: 600; }
+.admin-main .card { padding: var(--s5); }
+.admin-main .form-grid > *, .admin-main .stack > label { min-width: 0; }
+.admin-main .form-grid select, .admin-main .form-grid input:not([type="checkbox"]):not([type="radio"]), .admin-main .stack > label > select, .admin-main .stack > label > input:not([type="checkbox"]):not([type="radio"]) { width: 100%; }
+.admin-main fieldset { background: var(--surface); }
+.admin-main details { border-top: 1px solid var(--line); padding-top: var(--s3); margin-top: var(--s3); }
+.admin-main details > summary { font-weight: 800; cursor: pointer; margin-bottom: var(--s3); }
+.admin-main td details { border: 0; padding: 0; margin: 0; }
+.admin-main td details > summary { font-weight: 600; margin: 0; }
+input[type="file"] { font: inherit; font-size: var(--t-sm); max-width: 100%; }
+input[type="file"]::file-selector-button { font: inherit; font-weight: 700; margin-right: var(--s3); padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); cursor: pointer; }
+.admin-login { max-width: 420px; margin: var(--s8) auto; padding: var(--s6) var(--s5); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); }
+.admin-login .logo { margin: 0 0 var(--s3); }
+.admin-login .btn { width: 100%; }
 .kpis { display: grid; gap: var(--s3); grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
 .kpi { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: var(--s3) var(--s4); }
 .kpi strong { display: block; font-size: 1.6rem; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
@@ -608,3 +638,8 @@ label.q-step input { font-weight: 500; }
 .not-found .row { justify-content: center; }
 .chart { overflow: visible; }
 @media (max-width: 640px) { .chart .axis { font-size: 19px; } .chart-card { padding: var(--s4) var(--s3) var(--s3) var(--s5); } }
+/* Logo em superfícies escuras: selo lima com o V em tinta (o selo claro com V lima não tem contraste) */
+.foot .logo rect, .admin-nav .logo rect { fill: var(--mark); }
+.foot .logo path, .admin-nav .logo path { fill: #0e1222; }
+@media (prefers-color-scheme: dark) { .logo rect { fill: var(--mark); } .logo path { fill: #0e1222; } }
+.pricebox .empty { padding: var(--s5) var(--s4); margin-bottom: var(--s3); }

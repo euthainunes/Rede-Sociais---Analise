@@ -65,7 +65,12 @@ export default async function ProductPageView({ params, searchParams }: Props) {
   const alt = (role: keyof typeof ALT_LABEL) => page.alternatives.find((a) => a.role === role)?.product;
 
   const change = (v: number | null | undefined) => (v == null || v === 0 ? undefined : v < 0 ? "down" : "up");
-  const worth = sel.verdict.label === "excellent" || sel.verdict.label === "good"
+  // Sem oferta válida ou sem histórico suficiente não dá para dizer que "o preço está normal".
+  const worth = !best
+    ? "Sim, se o perfil acima é o seu; no momento nenhuma loja tem preço atualizado, então vale criar um alerta."
+    : sel.verdict.label === "insufficient_data"
+      ? "Sim, se o perfil acima é o seu; ainda não temos histórico suficiente para dizer se o preço atual é bom."
+      : sel.verdict.label === "excellent" || sel.verdict.label === "good"
     ? `Sim, se o perfil acima é o seu — e o preço atual está ${PRICE_LABELS[sel.verdict.label].text.toLowerCase()}.`
     : sel.verdict.label === "high"
       ? "O produto é bom para o perfil acima, mas o preço está alto agora: vale esperar uma queda."

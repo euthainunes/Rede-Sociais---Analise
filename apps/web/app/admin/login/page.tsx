@@ -1,6 +1,7 @@
 import { brand } from "@veredito/brand";
 import { loginAction } from "../actions";
 import { Flash } from "../Flash";
+import { LogoMark } from "@/components/Icon";
 import { adminSql } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
@@ -8,8 +9,9 @@ export const dynamic = "force-dynamic";
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ erro?: string; ok?: string }> }) {
   const sp = await searchParams;
   return (
-    <main className="wrap" style={{ maxWidth: 420, marginTop: 64 }}>
-      <h1>{brand.name} · Painel</h1>
+    <main className="admin-login">
+      <p className="logo"><LogoMark />{brand.name}</p>
+      <h1>Painel</h1>
       {!adminSql() ? (
         <p className="flash erro">O painel precisa de banco de dados. Configure <code>DATABASE_URL</code>, rode as migrações e crie um usuário com <code>pnpm --filter @veredito/db create-admin</code>.</p>
       ) : (

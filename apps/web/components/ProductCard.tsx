@@ -42,11 +42,18 @@ export function ProductCard({ p, note, highlight, pick, offer, rank }: {
       <p className="pcard-summary">{note ?? p.summary}</p>
       {specs.length > 0 && <ul className="specs-mini" aria-label="Destaques">{specs.map((s) => <li key={s}>{s}</li>)}</ul>}
       <div className="pcard-price">
-        <div className="row">
-          <span className="price">{money(offer?.price ?? p.bestPrice)}</span>
-          <PriceBadge verdict={offer ? offer.verdict : p.verdict} />
-        </div>
-        {(offer?.merchant ?? p.bestMerchant) && <span className="small muted">menor preço na {offer?.merchant ?? p.bestMerchant}</span>}
+        {(offer?.price ?? p.bestPrice) != null ? (
+          <>
+            <div className="row">
+              <span className="price">{money(offer?.price ?? p.bestPrice)}</span>
+              <PriceBadge verdict={offer ? offer.verdict : p.verdict} />
+            </div>
+            {(offer?.merchant ?? p.bestMerchant) && <span className="small muted">menor preço na {offer?.merchant ?? p.bestMerchant}</span>}
+          </>
+        ) : (
+          // Estado "sem oferta" (docs/06 §6.4): ofertas com mais de 24 h ficam ocultas, então pode não haver preço válido.
+          <span className="small muted">Sem preço atualizado nas últimas 24 h</span>
+        )}
       </div>
       <div className="pcard-actions">
         <Link className="btn btn-ghost btn-sm" href={`/comparar?p=${p.slug}`} rel="nofollow"><Icon name="scale" /> Comparar</Link>

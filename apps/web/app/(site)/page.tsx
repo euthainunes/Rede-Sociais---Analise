@@ -84,6 +84,7 @@ export default async function Home() {
           </div>
           <Link className="more" href="/ofertas">Ver todas as ofertas <Icon name="arrow" /></Link>
         </div>
+        {deals.length === 0 && <div className="empty"><strong>Nenhum preço abaixo da mediana agora.</strong>Quando um celular ficar realmente mais barato que o normal, ele aparece aqui.</div>}
         <div className="grid rail-mobile">
           {deals.slice(0, 4).map((d) => (
             <ProductCard key={d.variant.id} p={d.product}
