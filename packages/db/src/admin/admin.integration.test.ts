@@ -7,7 +7,8 @@ import { createPgSource } from "../source.ts";
 import {
   addVariant, createStaff, decideMatch, getSession, importFeed, listAudit, listMatchQueue, listOpenAlerts, login, logout,
   refreshInternalAlerts, saveContent, saveProduct, totp, transitionContent, ValidationError, ForbiddenError, type Staff,
-  matchTotpStep,
+  matchTotpStep, archiveDemoProducts, deleteProduct, listProductsAdmin, productCounts, setProductArchived, setProductDemo, setVariantActive,
+  updateVariant,
 } from "./index.ts";
 
 const url = process.env.TEST_DATABASE_URL;
@@ -195,5 +196,79 @@ describe.skipIf(!url)("admin (Postgres)", () => {
     await save(productSlug);
     expect(await svc.redirectFor(`/celulares/${productSlug}`)).toBeNull();
     expect(await svc.redirectFor(`/celulares/${productSlug}-c`)).toBe(`/celulares/${productSlug}`);
+  });
+
+  it("archives, restores, marks real and deletes products; edits and deactivates versions", async () => {
+    const base = {
+      category: "celulares", brand: `Ômega ${tag}`, summary: "Um celular de teste para arquivar e excluir.",
+      editorial: { forWho: [], notForWho: [], pros: [], cons: [] }, specs: { battery_mah: 5000 },
+      specSource: { kind: "manual" as const },
+    };
+    const { id, slug } = await saveProduct(sql, admin, { ...base, name: `Omega Arquivo ${tag}`, publishStatus: "published" });
+    const v1 = await addVariant(sql, admin, id, { storage: "128gb", color: "Azul" });
+    const v2 = await addVariant(sql, admin, id, { storage: "256gb", color: "Azul" });
+    const svc = () => new CatalogService(createPgSource(sql));
+
+    // Versão: editar (GTIN repetido é recusado com mensagem) e desativar (sai do site, sobra ao menos uma).
+    await expect(updateVariant(sql, admin, v2, { storage: "128gb", color: "azul" })).rejects.toThrow(/já tem uma versão/);
+    await expect(updateVariant(sql, admin, v2, { storage: "256gb", color: "Azul", gtin })).rejects.toThrow(/já está em uma versão/);
+    await updateVariant(sql, admin, v2, { storage: "512gb", color: "Azul" });
+    await setVariantActive(sql, admin, v2, false);
+    await expect(setVariantActive(sql, admin, v1, false)).rejects.toThrow(/ao menos uma versão ativa/);
+    const page = await svc().getProductPage("celulares", slug);
+    expect(page?.variants.map((v) => v.slug)).toEqual(["128gb-azul"]);
+
+    // Arquivar tira do site; salvar sem "Publicado" não desarquiva; restaurar volta como rascunho.
+    await setProductArchived(sql, admin, id, true);
+    expect(await svc().getProductPage("celulares", slug)).toBeNull();
+    await saveProduct(sql, admin, { ...base, id, name: `Omega Arquivo ${tag}`, publishStatus: "draft" });
+    expect((await listProductsAdmin(sql, { filter: "arquivados", q: `Omega Arquivo ${tag}` })).length).toBe(1);
+    expect((await listProductsAdmin(sql, { filter: "ativos", q: `Omega Arquivo ${tag}` })).length).toBe(0);
+    await setProductArchived(sql, admin, id, false);
+    expect((await listProductsAdmin(sql, { filter: "rascunhos", q: `Omega Arquivo ${tag}` })).length).toBe(1);
+
+    // Excluir: só arquivado, com o endereço digitado; libera o endereço e pausa as ofertas.
+    await expect(deleteProduct(sql, admin, id, slug)).rejects.toThrow(/arquive/);
+    await setProductArchived(sql, admin, id, true);
+    await expect(deleteProduct(sql, admin, id, "errado")).rejects.toThrow(/digite o endereço/);
+    await deleteProduct(sql, admin, id, slug);
+    expect((await listProductsAdmin(sql, { filter: "arquivados", q: `Omega Arquivo ${tag}` })).length).toBe(0);
+    const again = await saveProduct(sql, admin, { ...base, name: `Omega Arquivo ${tag}`, publishStatus: "draft" });
+    expect(again.slug).toBe(slug);
+
+    // Produto citado por conteúdo no ar não pode ser excluído.
+    const [cited] = await sql<{ id: string; slug: string }[]>`SELECT id, slug FROM catalog.product WHERE slug = ${`${productSlug}`}`;
+    const g = await saveContent(sql, admin, { kind: "guide", title: `Guia citando ${tag}`, category: "celulares", productSlugs: [cited!.slug],
+      evidenceLevel: null, intro: null, sections: [{ heading: "A", text: "b" }] });
+    for (const to of ["in_review", "approved", "published"] as const) await transitionContent(sql, admin, g, to);
+    await setProductArchived(sql, admin, cited!.id, true);
+    await expect(deleteProduct(sql, admin, cited!.id, cited!.slug)).rejects.toThrow(/conteúdo no ar/);
+    await setProductArchived(sql, admin, cited!.id, false);
+
+    // Demonstração: marcar como real e arquivar em lote só os de demonstração.
+    await setProductDemo(sql, admin, again.id, true);
+    expect((await productCounts(sql)).demo_no_ar).toBeGreaterThan(0);
+    await expect(archiveDemoProducts(sql, admin, "sim")).rejects.toBeInstanceOf(ValidationError);
+    const n = await archiveDemoProducts(sql, admin, "arquivar");
+    expect(n).toBeGreaterThan(0);
+    expect((await productCounts(sql)).demo_no_ar).toBe(0);
+    const [real] = await sql`SELECT publish_status FROM catalog.product WHERE id = ${cited!.id}`;
+    expect(real!.publish_status).not.toBe("archived");
+  });
+
+  it("refuses to change or erase the audit log and filters it", async () => {
+    await expect(sql`UPDATE ops.audit_log SET action = 'x' WHERE id = (SELECT max(id) FROM ops.audit_log)`).rejects.toThrow(/somente de inclusão/);
+    await expect(sql`DELETE FROM ops.audit_log`).rejects.toThrow(/somente de inclusão/);
+    await expect(sql`TRUNCATE ops.audit_log`).rejects.toThrow(/somente de inclusão/);
+    const products = await listAudit(sql, 500, { action: "product." });
+    expect(products.length).toBeGreaterThan(0);
+    expect(products.every((r) => r.action.startsWith("product."))).toBe(true);
+    const mine = await listAudit(sql, 500, { actor: editor.id });
+    expect(mine.every((r) => r.email === editor.email)).toBe(true);
+    const today = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
+    expect((await listAudit(sql, 5, { from: today, to: today })).length).toBeGreaterThan(0);
+    expect(await listAudit(sql, 5, { to: "2000-01-01" })).toEqual([]);
+    const [first, second] = await listAudit(sql, 2);
+    expect((await listAudit(sql, 1, { before: first!.id }))[0]!.id).toBe(second!.id);
   });
 });

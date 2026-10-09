@@ -1,5 +1,6 @@
 import { celulares, type Specs } from "@veredito/core";
 import { saveProductAction } from "../../actions";
+import { ActionForm } from "../../ActionForm";
 
 export interface ProductFormValues {
   id?: string;
@@ -16,13 +17,16 @@ export interface ProductFormValues {
   cons: string[];
   specs: Specs;
   published: boolean;
+  archived?: boolean;
+  /** Fonte da última edição da ficha; novos produtos começam em "Fabricante". */
+  sourceKind?: string;
 }
 
 /** Formulário gerado a partir da configuração da categoria — campos, unidades e grupos vêm de @veredito/core. */
 export function ProductForm({ v, canWrite }: { v: ProductFormValues; canWrite: boolean }) {
   const config = celulares;
   return (
-    <form action={saveProductAction} className="stack">
+    <ActionForm action={saveProductAction} className="stack">
       {v.id && <input type="hidden" name="id" value={v.id} />}
       <input type="hidden" name="category" value={v.category} />
       <fieldset disabled={!canWrite}>
@@ -49,7 +53,7 @@ export function ProductForm({ v, canWrite }: { v: ProductFormValues; canWrite: b
         <legend>Ficha técnica</legend>
         <div className="form-grid">
           <label>Fonte dos dados
-            <select name="sourceKind" defaultValue="manufacturer">
+            <select name="sourceKind" defaultValue={v.sourceKind ?? "manufacturer"}>
               <option value="manufacturer">Fabricante</option>
               <option value="editorial_test">Teste próprio</option>
               <option value="benchmark">Benchmark</option>
@@ -96,10 +100,10 @@ export function ProductForm({ v, canWrite }: { v: ProductFormValues; canWrite: b
       </fieldset>
       {canWrite && (
         <div className="row">
-          <label style={{ display: "flex", gap: 8, alignItems: "center" }}><input type="checkbox" name="publish" defaultChecked={v.published} /> Publicado no site</label>
+          <label style={{ display: "flex", gap: 8, alignItems: "center" }}><input type="checkbox" name="publish" defaultChecked={v.published} /> {v.archived ? "Publicar de novo (está arquivado)" : "Publicado no site"}</label>
           <button className="btn btn-primary" type="submit">Salvar</button>
         </div>
       )}
-    </form>
+    </ActionForm>
   );
 }

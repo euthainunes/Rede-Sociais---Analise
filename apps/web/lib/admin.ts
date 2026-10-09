@@ -35,12 +35,41 @@ export async function requestFingerprint() {
   return { ipHash: hash(h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null), userAgentHash: hash(h.get("user-agent")) };
 }
 
-/** Mensagem de erro amigável para redirect (?erro=). */
+/** Erros do Postgres que podem chegar ao painel, em português (códigos SQLSTATE). */
+const PG_MESSAGES: Record<string, string> = {
+  "23505": "Já existe um registro com esse valor (endereço, GTIN ou nome repetido).",
+  "23503": "Este item está ligado a outro que não existe mais ou ainda está em uso.",
+  "23502": "Um campo obrigatório ficou em branco.",
+  "23514": "Um dos valores está fora do permitido.",
+  "22P02": "Um dos valores está em formato inválido.",
+  "22001": "Um dos textos é longo demais.",
+  "22003": "Um dos números é grande demais.",
+  "22007": "Uma das datas está em formato inválido.",
+  "22008": "Uma das datas está fora do intervalo válido.",
+  "40001": "Outra pessoa salvou ao mesmo tempo. Tente de novo.",
+  "40P01": "Outra pessoa salvou ao mesmo tempo. Tente de novo.",
+  "42501": "Esta operação não é permitida.",
+};
+
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/** Mensagem de erro amigável, sempre em português. Erros técnicos vão para o log do servidor. */
 export function errorMessage(e: unknown): string {
   if (e && typeof e === "object" && "issues" in e && Array.isArray((e as { issues: unknown }).issues)) {
-    return (e as { issues: string[] }).issues.join(" · ");
+    return (e as { issues: string[] }).issues.map(capitalize).join(" · ");
   }
-  return e instanceof Error ? e.message : "Erro inesperado";
+  if (e instanceof Error && e.name === "PostgresError") {
+    console.error("[admin] erro do banco:", e);
+    const code = (e as Error & { code?: string }).code ?? "";
+    return PG_MESSAGES[code] ?? "Não foi possível salvar por um erro no banco de dados. Tente de novo; se continuar, avise a equipe técnica.";
+  }
+  if (e instanceof Error && e.message.startsWith("Sem permissão")) return "Sem permissão para esta ação.";
+  if (e instanceof Error && /^(write|connect|read) E[A-Z]+|ECONNREFUSED|ETIMEDOUT|ENOTFOUND/.test(e.message)) {
+    console.error("[admin] erro de conexão:", e);
+    return "Sem conexão com o banco de dados no momento. Tente de novo em instantes.";
+  }
+  if (e instanceof Error) return capitalize(e.message);
+  return "Erro inesperado. Tente de novo.";
 }
 
 /** "## Título\ntexto" → seções. */

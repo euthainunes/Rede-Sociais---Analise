@@ -10,7 +10,8 @@ import { coerceSpecs, getCategory, lines } from "@veredito/core";
 import { createEmbedder, indexDocument } from "@veredito/ai";
 import { getCatalogService, PgKnowledgeStore } from "@veredito/db";
 import {
-  addVariant, decideMatch, importFeed, login, logout, refreshInternalAlerts, saveContent, saveProduct, transitionContent,
+  addVariant, archiveDemoProducts, decideMatch, deleteProduct, importFeed, login, logout, refreshInternalAlerts, saveContent, saveProduct,
+  setProductArchived, setProductDemo, setVariantActive, transitionContent, updateVariant,
   SESSION_HOURS, type ContentKind, type ContentStatus, type FeedFormat, type SpecSourceKind,
 } from "@veredito/db/admin";
 import { addFeedSource, netOptionsFromEnv, setFeedSourceActive } from "@veredito/db/jobs";
@@ -20,6 +21,7 @@ import {
   buildEditionDraft, createWebhookEndpoint, retryWebhookDelivery, sendEdition, sendWebhookTest, setWebhookEndpointActive, updateEdition,
 } from "@veredito/db/people";
 import { ADMIN_COOKIE, adminSql, currentStaff, errorMessage, parseSections, requestFingerprint, requireStaff } from "@/lib/admin";
+import { formError, type FormState } from "@/lib/form-state";
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 const back = (path: string, kind: "ok" | "erro", msg: string) => `${path}${path.includes("?") ? "&" : "?"}${kind}=${encodeURIComponent(msg)}`;
@@ -65,7 +67,7 @@ export async function refreshAlertsAction() {
   redirect(back("/admin", "ok", `Alertas recalculados: ${r.opened} novos, ${r.resolved} resolvidos.`));
 }
 
-export async function saveProductAction(form: FormData) {
+export async function saveProductAction(_: FormState, form: FormData): Promise<FormState> {
   const { staff, sql } = await requireStaff("catalog:write");
   const id = str(form, "id") || null;
   const category = str(form, "category") || "celulares";
@@ -76,7 +78,6 @@ export async function saveProductAction(form: FormData) {
     if (a.type === "bool") raw[a.key] = v === null ? (form.get(`spec_present.${a.key}`) ? "false" : undefined) : String(v);
     else raw[a.key] = v === null ? undefined : String(v);
   }
-  const back404 = id ? `/admin/produtos/${id}` : "/admin/produtos/novo";
   let saved: { id: string };
   try {
     saved = await saveProduct(sql, staff, {
@@ -88,25 +89,25 @@ export async function saveProductAction(form: FormData) {
       specSource: { kind: (str(form, "sourceKind") || "manual") as SpecSourceKind, url: str(form, "sourceUrl") || null },
     });
   } catch (e) {
-    redirect(back(back404, "erro", errorMessage(e)));
+    return formError(errorMessage(e));
   }
   publicChanged();
   redirect(back(`/admin/produtos/${saved.id}`, "ok", "Produto salvo."));
 }
 
-export async function addVariantAction(form: FormData) {
+export async function addVariantAction(_: FormState, form: FormData): Promise<FormState> {
   const { staff, sql } = await requireStaff("catalog:write");
   const productId = str(form, "productId");
   try {
     await addVariant(sql, staff, productId, { storage: str(form, "storage"), color: str(form, "color"), gtin: str(form, "gtin") || null });
   } catch (e) {
-    redirect(back(`/admin/produtos/${productId}`, "erro", errorMessage(e)));
+    return formError(errorMessage(e));
   }
   publicChanged();
   redirect(back(`/admin/produtos/${productId}`, "ok", "Versão adicionada."));
 }
 
-export async function importFeedAction(form: FormData) {
+export async function importFeedAction(_: FormState, form: FormData): Promise<FormState> {
   const { staff, sql } = await requireStaff("offers:write");
   const file = form.get("file");
   const content = file instanceof File && file.size > 0 ? await file.text() : String(form.get("content") ?? "");
@@ -118,7 +119,7 @@ export async function importFeedAction(form: FormData) {
     });
     msg = `${s.total} linhas: ${s.auto} associadas automaticamente, ${s.queued} na fila de matching, ${s.invalid} inválidas.`;
   } catch (e) {
-    redirect(back("/admin/ofertas", "erro", errorMessage(e)));
+    return formError(errorMessage(e));
   }
   publicChanged();
   redirect(back("/admin/ofertas", "ok", msg));
@@ -137,7 +138,7 @@ export async function decideMatchAction(form: FormData) {
   redirect(back("/admin/ofertas", "ok", form.get("reject") ? "Anúncio rejeitado." : "Oferta associada."));
 }
 
-export async function saveContentAction(form: FormData) {
+export async function saveContentAction(_: FormState, form: FormData): Promise<FormState> {
   const { staff, sql } = await requireStaff("content:write");
   const id = str(form, "id") || null;
   const kind = (str(form, "kind") || "review") as ContentKind;
@@ -155,7 +156,7 @@ export async function saveContentAction(form: FormData) {
       picks: kind === "best_list" ? picks : [], changeNote: str(form, "changeNote") || null,
     });
   } catch (e) {
-    redirect(back(id ? `/admin/conteudo/${id}` : "/admin/conteudo/novo", "erro", errorMessage(e)));
+    return formError(errorMessage(e));
   }
   redirect(back(`/admin/conteudo/${saved}`, "ok", "Conteúdo salvo (nova revisão registrada)."));
 }
@@ -182,7 +183,7 @@ export async function transitionContentAction(form: FormData) {
   redirect(back(`/admin/conteudo/${id}`, "ok", "Status atualizado."));
 }
 
-export async function addFeedSourceAction(form: FormData) {
+export async function addFeedSourceAction(_: FormState, form: FormData): Promise<FormState> {
   const { staff, sql } = await requireStaff("offers:write");
   try {
     await addFeedSource(sql, staff, {
@@ -190,7 +191,7 @@ export async function addFeedSourceAction(form: FormData) {
       format: (str(form, "format") || "planilha") as FeedFormat, intervalMinutes: Number(str(form, "interval")) || 180,
     });
   } catch (e) {
-    redirect(back("/admin/ofertas", "erro", errorMessage(e)));
+    return formError(errorMessage(e));
   }
   redirect(back("/admin/ofertas", "ok", "Feed agendado. O worker coleta no próximo ciclo."));
 }
@@ -207,7 +208,7 @@ export async function resolveAlertAction(form: FormData) {
   redirect(back("/admin", "ok", "Alerta marcado como resolvido."));
 }
 
-export async function importConversionsAction(form: FormData) {
+export async function importConversionsAction(_: FormState, form: FormData): Promise<FormState> {
   const { staff, sql } = await requireStaff("commission:read");
   const file = form.get("file");
   const content = file instanceof File && file.size > 0 ? await file.text() : String(form.get("content") ?? "");
@@ -216,7 +217,7 @@ export async function importConversionsAction(form: FormData) {
     const s = await importConversions(sql, staff, { programKey: str(form, "programKey"), format: (str(form, "format") || "planilha") as ConversionFormat, content });
     msg = `${s.total} linhas: ${s.created} novas, ${s.updated} atualizadas, ${s.unchanged} sem mudança, ${s.invalid} inválidas.`;
   } catch (e) {
-    redirect(back("/admin/receita", "erro", errorMessage(e)));
+    return formError(errorMessage(e));
   }
   redirect(back("/admin/receita", "ok", msg));
 }
@@ -232,7 +233,7 @@ export async function buildNewsletterAction() {
   redirect(back(`/admin/newsletter?id=${r.id}`, "ok", r.created ? "Rascunho da semana montado. Revise antes de enviar." : "O rascunho desta semana já existia."));
 }
 
-export async function updateNewsletterAction(form: FormData) {
+export async function updateNewsletterAction(_: FormState, form: FormData): Promise<FormState> {
   const { staff, sql } = await requireStaff("content:write");
   const id = str(form, "id");
   const count = Number(str(form, "count")) || 0;
@@ -242,7 +243,7 @@ export async function updateNewsletterAction(form: FormData) {
       include: Array.from({ length: count }, (_, i) => form.get(`include.${i}`) === "on"),
     });
   } catch (e) {
-    redirect(back(`/admin/newsletter?id=${id}`, "erro", errorMessage(e)));
+    return formError(errorMessage(e));
   }
   redirect(back(`/admin/newsletter?id=${id}`, "ok", "Edição salva."));
 }
@@ -260,12 +261,12 @@ export async function sendNewsletterAction(form: FormData) {
   redirect(back(`/admin/newsletter?id=${id}`, "ok", `Edição enviada para a fila: ${n} inscritos confirmados.`));
 }
 
-export async function createWebhookAction(form: FormData) {
+export async function createWebhookAction(_: FormState, form: FormData): Promise<FormState> {
   const { staff, sql } = await requireStaff("staff:manage");
   try {
     await createWebhookEndpoint(sql, staff, { name: str(form, "name"), url: str(form, "url"), events: form.getAll("events").map(String) }, netOptionsFromEnv());
   } catch (e) {
-    redirect(back("/admin/webhooks", "erro", errorMessage(e)));
+    return formError(errorMessage(e));
   }
   redirect(back("/admin/webhooks", "ok", "Endpoint criado. Copie o segredo de assinatura e configure no CRM."));
 }
@@ -291,4 +292,78 @@ export async function retryWebhookAction(form: FormData) {
     redirect(back("/admin/webhooks", "erro", errorMessage(e)));
   }
   redirect(back("/admin/webhooks", "ok", "Entrega devolvida para a fila."));
+}
+
+export async function updateVariantAction(_: FormState, form: FormData): Promise<FormState> {
+  const { staff, sql } = await requireStaff("catalog:write");
+  let productId: string;
+  try {
+    productId = await updateVariant(sql, staff, str(form, "variantId"), { storage: str(form, "storage"), color: str(form, "color"), gtin: str(form, "gtin") || null });
+  } catch (e) {
+    return formError(errorMessage(e));
+  }
+  publicChanged();
+  redirect(back(`/admin/produtos/${productId}`, "ok", "Versão atualizada."));
+}
+
+export async function toggleVariantAction(form: FormData) {
+  const { staff, sql } = await requireStaff("catalog:write");
+  const productId = str(form, "productId");
+  const active = form.get("active") === "1";
+  try {
+    await setVariantActive(sql, staff, str(form, "variantId"), active);
+  } catch (e) {
+    redirect(back(`/admin/produtos/${productId}`, "erro", errorMessage(e)));
+  }
+  publicChanged();
+  redirect(back(`/admin/produtos/${productId}`, "ok", active ? "Versão reativada." : "Versão desativada: saiu do site, as ofertas ficam guardadas."));
+}
+
+export async function archiveProductAction(form: FormData) {
+  const { staff, sql } = await requireStaff("catalog:write");
+  const id = str(form, "id");
+  const archived = form.get("archived") === "1";
+  try {
+    await setProductArchived(sql, staff, id, archived);
+  } catch (e) {
+    redirect(back(`/admin/produtos/${id}`, "erro", errorMessage(e)));
+  }
+  publicChanged();
+  redirect(back(`/admin/produtos/${id}`, "ok", archived ? "Produto arquivado: saiu do site." : "Produto restaurado como rascunho. Marque Publicado para voltar ao site."));
+}
+
+export async function markDemoAction(form: FormData) {
+  const { staff, sql } = await requireStaff("catalog:write");
+  const id = str(form, "id");
+  const demo = form.get("demo") === "1";
+  try {
+    await setProductDemo(sql, staff, id, demo);
+  } catch (e) {
+    redirect(back(`/admin/produtos/${id}`, "erro", errorMessage(e)));
+  }
+  publicChanged();
+  redirect(back(`/admin/produtos/${id}`, "ok", demo ? "Marcado como demonstração." : "Marcado como produto real."));
+}
+
+export async function deleteProductAction(_: FormState, form: FormData): Promise<FormState> {
+  const { staff, sql } = await requireStaff("catalog:write");
+  try {
+    await deleteProduct(sql, staff, str(form, "id"), str(form, "confirm"));
+  } catch (e) {
+    return formError(errorMessage(e));
+  }
+  publicChanged();
+  redirect(back("/admin/produtos", "ok", "Produto excluído."));
+}
+
+export async function archiveDemoAction(_: FormState, form: FormData): Promise<FormState> {
+  const { staff, sql } = await requireStaff("catalog:write");
+  let n: number;
+  try {
+    n = await archiveDemoProducts(sql, staff, str(form, "confirm"));
+  } catch (e) {
+    return formError(errorMessage(e));
+  }
+  publicChanged();
+  redirect(back("/admin/produtos?filtro=arquivados", "ok", `${n} produtos de demonstração arquivados. Dá para restaurar um a um.`));
 }

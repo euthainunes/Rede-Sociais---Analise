@@ -7,6 +7,8 @@ import { PROGRAMS } from "@veredito/integrations";
 import { importConversionsAction } from "../../actions";
 import { Flash } from "../../Flash";
 import { requireStaff } from "@/lib/admin";
+import { ActionForm } from "../../ActionForm";
+import { dateBR } from "@/lib/format";
 
 const brl = (v: number | null | undefined) => (v == null ? "—" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
 const DIMS: { key: RevenueDimension; label: string }[] = [
@@ -90,13 +92,13 @@ export default async function RevenuePage({ searchParams }: Props) {
         <thead><tr><th>Pedido</th><th>Programa</th><th>Valor</th><th>Comissão</th><th>Status</th><th>Atribuição</th></tr></thead>
         <tbody>{recent.map((c) => (
           <tr key={c.id}>
-            <td className="small">{c.external_id}<br /><span className="muted">{c.ordered_at.toLocaleDateString("pt-BR")}</span></td>
+            <td className="small">{c.external_id}<br /><span className="muted">{dateBR(c.ordered_at)}</span></td>
             <td>{c.program}</td>
             <td>{brl(Number(c.order_value))}</td>
             <td>{brl(Number(c.amount))}</td>
             <td>
               <ol className="small" style={{ margin: 0, paddingLeft: 16 }}>
-                {(c.history ?? []).map((h, i) => <li key={i}>{COMMISSION_STATUS_LABELS[h.to]} <span className="muted">{new Date(h.at).toLocaleDateString("pt-BR")}</span></li>)}
+                {(c.history ?? []).map((h, i) => <li key={i}>{COMMISSION_STATUS_LABELS[h.to]} <span className="muted">{dateBR(h.at)}</span></li>)}
               </ol>
             </td>
             <td className="small">{c.attribution_method === "click_ref" ? "exata" : "alocada"}{c.source_path && <><br /><span className="muted">{c.source_path}</span></>}</td>
@@ -107,7 +109,7 @@ export default async function RevenuePage({ searchParams }: Props) {
       <section className="card" style={{ marginTop: 24 }}>
         <h2 style={{ marginTop: 0 }}>Importar relatório de conversões</h2>
         <p className="small muted">Reimportar o mesmo relatório é seguro: cada pedido é contado uma vez e só o status/valor é atualizado. Redes com postback podem enviar direto para <code>/api/webhooks/networks/&lt;programa&gt;</code> (assinado com HMAC).</p>
-        <form action={importConversionsAction} className="stack">
+        <ActionForm action={importConversionsAction} className="stack">
           <div className="form-grid">
             <label>Programa
               <select name="programKey" required defaultValue="">
@@ -123,7 +125,7 @@ export default async function RevenuePage({ searchParams }: Props) {
           </div>
           <label>…ou cole o conteúdo<textarea name="content" rows={4} placeholder={EXAMPLE} /></label>
           <button className="btn btn-primary" type="submit">Importar</button>
-        </form>
+        </ActionForm>
       </section>
     </>
   );

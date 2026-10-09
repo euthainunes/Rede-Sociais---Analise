@@ -298,6 +298,7 @@ export async function evaluatePriceAlerts(sql: Sql, now = new Date(), limit = 10
     FROM people.price_alert a JOIN people.person pe ON pe.id = a.person_id
     JOIN catalog.product p ON p.id = a.product_id JOIN catalog.category c ON c.id = p.category_id
     WHERE a.status = 'active' AND pe.deleted_at IS NULL AND pe.email IS NOT NULL
+      AND p.publish_status = 'published' AND p.deleted_at IS NULL  -- produto arquivado não gera e-mail com link quebrado
     ORDER BY a.last_triggered_at NULLS FIRST LIMIT ${limit}`;
   let notified = 0;
   for (const a of alerts) {

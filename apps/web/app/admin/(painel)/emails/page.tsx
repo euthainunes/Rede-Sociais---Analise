@@ -1,4 +1,5 @@
 import { requireStaff } from "@/lib/admin";
+import { dateTimeBR } from "@/lib/format";
 
 function mask(email: string) {
   return email.replace(/^(.)(.*)(@.*)$/, (_, a: string, b: string, c: string) => `${a}${"•".repeat(Math.min(b.length, 6))}${c}`);
@@ -33,7 +34,7 @@ export default async function EmailsAdmin() {
           const link = showLinks ? r.text_body.match(/https?:\/\/\S+/)?.[0] : null;
           return (
             <tr key={r.id}>
-              <td className="small">{r.created_at.toLocaleString("pt-BR")}</td>
+              <td className="small">{dateTimeBR(r.created_at)}</td>
               <td className="small">{mask(r.to_email)}</td>
               <td className="small">{r.kind}</td>
               <td>{r.subject}</td>

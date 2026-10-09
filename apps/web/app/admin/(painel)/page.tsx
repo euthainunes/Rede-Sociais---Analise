@@ -4,10 +4,11 @@ import { lastRuns } from "@veredito/db/jobs";
 import { refreshAlertsAction, resolveAlertAction } from "../actions";
 import { Flash } from "../Flash";
 import { requireStaff } from "@/lib/admin";
+import { dateBR, dateTimeBR } from "@/lib/format";
 
 type Props = { searchParams: Promise<{ ok?: string; erro?: string; dias?: string }> };
 
-const when = (d: Date) => d.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+const when = dateTimeBR;
 function ago(d: Date) {
   const min = Math.round((Date.now() - d.getTime()) / 60_000);
   if (min < 60) return `há ${Math.max(min, 1)} min`;
@@ -92,7 +93,7 @@ export default async function Dashboard({ searchParams }: Props) {
                     : a.entity_type === "content" ? <Link href={`/admin/conteudo/${a.entity_id}`}>{String(a.details.title ?? a.entity_id)}</Link>
                     : String(a.details.title ?? a.details.pending ?? "")}
                 </td>
-                <td className="small">{a.created_at.toLocaleDateString("pt-BR")}</td>
+                <td className="small">{dateBR(a.created_at)}</td>
                 <td>{(a.kind === "price_anomaly" || a.kind === "feed_error") && (
                   <form action={resolveAlertAction}><input type="hidden" name="id" value={a.id} /><button className="btn btn-ghost btn-sm" type="submit">Resolvido</button></form>
                 )}</td>
@@ -108,7 +109,7 @@ export default async function Dashboard({ searchParams }: Props) {
           <tbody>{runs.map((r) => (
             <tr key={r.job}>
               <td>{r.job}</td>
-              <td className="small">{r.started_at.toLocaleString("pt-BR")}</td>
+              <td className="small">{dateTimeBR(r.started_at)}</td>
               <td><span className={`badge ${r.status === "ok" ? "good" : r.status === "running" ? "normal" : "high"}`}>{r.status}</span></td>
               <td className="small muted">{r.error ?? JSON.stringify(r.result ?? {})}</td>
             </tr>

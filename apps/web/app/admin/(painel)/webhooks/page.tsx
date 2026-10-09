@@ -2,6 +2,8 @@ import { listWebhookDeliveries, listWebhookEndpoints, WEBHOOK_EVENT_LABELS, WEBH
 import { createWebhookAction, retryWebhookAction, testWebhookAction, toggleWebhookAction } from "../../actions";
 import { Flash } from "../../Flash";
 import { requireStaff } from "@/lib/admin";
+import { ActionForm } from "../../ActionForm";
+import { dateTimeBR, timeBR } from "@/lib/format";
 
 const STATUS: Record<string, { label: string; tone: string }> = {
   queued: { label: "na fila", tone: "normal" }, sending: { label: "enviando", tone: "normal" }, delivered: { label: "entregue", tone: "good" },
@@ -33,7 +35,7 @@ export default async function WebhooksAdmin({ searchParams }: Props) {
               <td><strong>{e.name}</strong> {!e.active && <span className="badge">pausado</span>}<br /><span className="small muted">{e.url}</span></td>
               <td className="small">{e.events.map((ev) => <div key={ev}>{ev}</div>)}</td>
               <td className="small">{e.delivered} entregues · {e.pending} na fila · {e.failed} com falha
-                {e.last_delivered_at && <><br /><span className="muted">última: {e.last_delivered_at.toLocaleString("pt-BR")}</span></>}</td>
+                {e.last_delivered_at && <><br /><span className="muted">última: {dateTimeBR(e.last_delivered_at)}</span></>}</td>
               <td className="small"><details><summary>mostrar</summary><code style={{ wordBreak: "break-all" }}>{e.secret}</code></details></td>
               <td>
                 <div className="row">
@@ -49,7 +51,7 @@ export default async function WebhooksAdmin({ searchParams }: Props) {
 
       <section className="card" style={{ marginTop: 24 }}>
         <h2 style={{ marginTop: 0 }}>Novo endpoint</h2>
-        <form action={createWebhookAction} className="stack">
+        <ActionForm action={createWebhookAction} className="stack">
           <div className="form-grid">
             <label>Nome<input type="text" name="name" required placeholder="RD Station, HubSpot…" /></label>
             <label>URL (https)<input type="url" name="url" required placeholder="https://crm.exemplo.com/webhooks/veredito" /></label>
@@ -61,7 +63,7 @@ export default async function WebhooksAdmin({ searchParams }: Props) {
             ))}
           </fieldset>
           <button className="btn btn-primary" type="submit">Criar endpoint</button>
-        </form>
+        </ActionForm>
       </section>
 
       <h2>Entregas recentes</h2>
@@ -70,12 +72,12 @@ export default async function WebhooksAdmin({ searchParams }: Props) {
           <thead><tr><th>Quando</th><th>Endpoint</th><th>Evento</th><th>Status</th><th>Tentativas</th><th /></tr></thead>
           <tbody>{deliveries.map((d) => (
             <tr key={d.id}>
-              <td className="small">{d.created_at.toLocaleString("pt-BR")}</td>
+              <td className="small">{dateTimeBR(d.created_at)}</td>
               <td className="small">{d.endpoint}</td>
               <td className="small"><code>{d.event}</code></td>
               <td><span className={`badge ${STATUS[d.status]?.tone ?? ""}`}>{STATUS[d.status]?.label ?? d.status}</span>
                 {d.last_error && <><br /><span className="small muted">{d.last_error}</span></>}
-                {d.status === "queued" && d.attempts > 0 && <><br /><span className="small muted">próxima: {d.next_attempt_at.toLocaleTimeString("pt-BR")}</span></>}</td>
+                {d.status === "queued" && d.attempts > 0 && <><br /><span className="small muted">próxima: {timeBR(d.next_attempt_at)}</span></>}</td>
               <td>{d.attempts}</td>
               <td>{(d.status === "failed" || d.status === "cancelled") && (
                 <form action={retryWebhookAction}><input type="hidden" name="id" value={d.id} /><button className="btn btn-ghost btn-sm" type="submit">Reenviar</button></form>
