@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getCategory } from "@veredito/core";
+import { getCategory, slugify } from "@veredito/core";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { JsonLd } from "@/components/JsonLd";
 import { ProductCard } from "@/components/ProductCard";
@@ -34,6 +34,8 @@ export default async function CategoryPage({ params, searchParams }: Props) {
 
   const sort = sp.ordem === "preco" ? "price" : "score";
   let list = await catalog().listCategory(categoria, sort);
+  const brands = [...new Map(list.map((p) => [slugify(p.brand), p.brand])).entries()].sort((a, b) => a[1].localeCompare(b[1], "pt-BR"));
+  if (sp.marca) list = list.filter((p) => slugify(p.brand) === sp.marca);
   const max = Number(sp.preco_max) || null;
   if (max) list = list.filter((p) => p.bestPrice != null && p.bestPrice <= max);
   if (sp["5g"] === "1") list = list.filter((p) => p.specs.five_g === true);
@@ -53,6 +55,12 @@ export default async function CategoryPage({ params, searchParams }: Props) {
           <select name="preco_max" defaultValue={sp.preco_max ?? ""}>
             <option value="">Qualquer</option>
             {cfg.priceBands.map((b) => <option key={b} value={b}>R$ {b.toLocaleString("pt-BR")}</option>)}
+          </select>
+        </label>
+        <label>Marca
+          <select name="marca" defaultValue={sp.marca ?? ""}>
+            <option value="">Todas</option>
+            {brands.map(([slug, name]) => <option key={slug} value={slug}>{name}</option>)}
           </select>
         </label>
         <label>RAM mínima

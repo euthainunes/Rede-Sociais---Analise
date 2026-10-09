@@ -2,6 +2,7 @@ import Link from "next/link";
 import { brand } from "@veredito/brand";
 import { ConsentBanner } from "@/components/ConsentBanner";
 import { JsonLd } from "@/components/JsonLd";
+import { SearchBox } from "@/components/SearchBox";
 import { isDemo } from "@/lib/data";
 import { organizationJsonLd, websiteJsonLd } from "@/lib/seo";
 
@@ -16,11 +17,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
       <header className="top">
         <div className="wrap">
           <Link href="/" className="logo">{brand.name}</Link>
-          <form action="/buscar" className="search" role="search">
-            <label htmlFor="q" className="sr-only">Buscar</label>
-            <input id="q" name="q" type="search" placeholder="Ex.: celular bom para fotos até 3 mil" autoComplete="off" />
-            <button type="submit">Buscar</button>
-          </form>
+          <SearchBox />
           <nav className="nav" aria-label="Principal">
             <Link href="/celulares">Celulares</Link>
             <Link href="/ofertas">Ofertas</Link>

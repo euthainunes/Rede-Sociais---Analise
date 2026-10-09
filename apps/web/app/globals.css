@@ -65,7 +65,7 @@ th { font-weight: 600; color: var(--ink-soft); font-size: .9rem; }
 .logo { font-weight: 800; font-size: 1.15rem; color: var(--ink); text-decoration: none; letter-spacing: -.01em; }
 .nav { display: flex; gap: var(--s4); font-size: .95rem; }
 .nav a { color: var(--ink); text-decoration: none; }
-.search { flex: 1 1 260px; display: flex; }
+.search { flex: 1 1 260px; display: flex; position: relative; }
 .search input { flex: 1; min-width: 0; font: inherit; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius) 0 0 var(--radius); background: var(--bg-soft); color: var(--ink); }
 .search button { font: inherit; border: 0; padding: 0 14px; border-radius: 0 var(--radius) var(--radius) 0; background: var(--brand); color: var(--brand-ink); cursor: pointer; }
 .foot { border-top: 1px solid var(--line); margin-top: var(--s7); padding: var(--s6) 0; font-size: .9rem; color: var(--ink-soft); }
@@ -156,3 +156,13 @@ input[type="password"], input[type="date"], input[type="url"], input[type="searc
 
 /* Alvo de toque mínimo (WCAG 2.5.8): links empilhados em tabelas e listas densas */
 .tap { display: block; min-height: 24px; padding: 2px 0; line-height: 20px; }
+
+/* Autocomplete da busca */
+.suggest { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 30; list-style: none; margin: 0; padding: 4px;
+  background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 8px 24px rgb(0 0 0 / .12); }
+.suggest[hidden] { display: none; }
+.suggest li { display: flex; gap: 10px; align-items: baseline; padding: 9px 10px; min-height: 24px; border-radius: calc(var(--radius) - 2px); cursor: pointer; }
+.suggest li[aria-selected="true"] { background: var(--brand-soft); }
+.suggest-kind { flex: 0 0 72px; font-size: .75rem; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .03em; }
+.suggest-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.suggest-hint { font-size: .85rem; color: var(--ink-soft); white-space: nowrap; }
